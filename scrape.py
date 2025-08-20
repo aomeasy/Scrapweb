@@ -2,7 +2,7 @@ import asyncio, json, os, re, sys
 from io import StringIO
 from pathlib import Path
 import pandas as pd
-from playwright.async_api import async_playwrigh
+from playwright.async_api import async_playwright
 import requests
 
 session = requests.Session()
