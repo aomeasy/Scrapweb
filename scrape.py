@@ -91,9 +91,14 @@ async def process_tab(ctx, page, tab):
         except:
             pass
 
-    page.on("response", on_response)
-    await page.goto(url, wait_until="networkidle")
-    page.off("response", on_response)
+        page.on("response", on_response)
+        await page.goto(url, wait_until="networkidle")
+        try:
+            page.remove_listener("response", on_response)
+        except Exception:
+            # รองรับกรณีเวอร์ชันเก่า/พฤติกรรมไม่เหมือนกัน
+            pass
+
 
     # ถ้ามี XHR เข้าข่าย → ลองยิงซ้ำ (เอาตัวสุดท้ายก่อน)
     if hits:
