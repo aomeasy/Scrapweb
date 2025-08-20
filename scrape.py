@@ -215,6 +215,8 @@ async def process_tab(ctx, page, tab) -> pd.DataFrame:
     # ไม่เจอ/ยิง API ไม่ผ่าน → fallback DOM (พร้อมพยายามโหลดทุกหน้า)
     return await extract_tables_from_dom(page, tab)
 
+# … (ไฟล์เดิมของคุณ) …
+
 async def main():
     # เตรียม Google Sheet (ถ้ามี secret)
     gc, sh = get_gspread_client() if (GOOGLE_SHEET_ID and GOOGLE_SERVICE_ACCOUNT_JSON) else (None, None)
@@ -230,18 +232,32 @@ async def main():
         # 1) Login
         await login(page)
 
+        # 1.1 บันทึกหลักฐานหลังล็อกอิน (กันพลาดไม่มีไฟล์)
+        await page.screenshot(path=str(OUT / "after_login.png"), full_page=True)
+        html = await page.content()
+        (OUT / "after_login.html").write_text(html, encoding="utf-8")
+
+        any_data = False
+
         # 2) วนทุกแท็บ → ดึงข้อมูล + บันทึกผล
         for t in TABS:
             df = await process_tab(ctx, page, t)
             print(f"TAB {t} -> rows={len(df)} cols={len(df.columns)}")
-            # Save สำรอง
             if not df.empty:
+                any_data = True
                 df.to_csv(OUT / f"tab_{t}.csv", index=False)
-            # เขียนขึ้น Google Sheet (ถ้ามี)
-            if sh and not df.empty:
-                write_df_to_gsheet(sh, f"TAB_{t}", df)
+                if sh:
+                    write_df_to_gsheet(sh, f"TAB_{t}", df)
+
+        # 3) ถ้าไม่มีไฟล์ข้อมูลเลย ให้สร้าง sentinel file เพื่อให้ artifact step มีของอัปโหลด
+        if not any_data:
+            (OUT / "NO_DATA.txt").write_text(
+                "No table/API data was captured in this run. See after_login.html/png for context.",
+                encoding="utf-8"
+            )
 
         await browser.close()
 
 if __name__ == "__main__":
     asyncio.run(main())
+
