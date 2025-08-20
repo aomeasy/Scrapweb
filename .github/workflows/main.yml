@@ -2,7 +2,7 @@ name: JobM → Google Sheet (Cron)
 
 on:
   schedule:
-    - cron: "*/30 * * * *"
+    - cron: "*/30 * * * *"   # ทุก 30 นาที (UTC)
   workflow_dispatch:
 
 jobs:
