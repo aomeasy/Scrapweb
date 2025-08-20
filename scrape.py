@@ -2,7 +2,18 @@ import asyncio, json, os, re, sys
 from io import StringIO
 from pathlib import Path
 import pandas as pd
-from playwright.async_api import async_playwright
+from playwright.async_api import async_playwrigh
+import requests
+
+session = requests.Session()
+payload = {
+    "username": "YOUR_USER",
+    "password": "YOUR_PASS",
+    "login__username": "ตกลง"
+}
+r = session.post("https://jobm.edoclite.com/jobManagement/pages/login_db", data=payload)
+print(r.url)
+print(r.text[:500])
 
 USER  = os.getenv("EDOCLITE_USER", "01000566")
 PASS  = os.getenv("EDOCLITE_PASS", "01000566")
