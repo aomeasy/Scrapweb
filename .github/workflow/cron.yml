@@ -1,19 +1,13 @@
-# .github/workflows/cron.yml
 name: JobM → Google Sheet (Cron)
 
 on:
   schedule:
-    # ทุก 30 นาที
-    - cron: "*/30 * * * *"
-    # ทุกวัน 08:00 น.เวลาไทย (ไทย=UTC+7 ⇒ 01:00 UTC)
-    - cron: "0 1 * * *"
-  # เผื่อกดรันเองได้
+    - cron: "*/30 * * * *"   # ทุก 30 นาที (UTC)
   workflow_dispatch:
 
 jobs:
   run:
     runs-on: ubuntu-latest
-    # กันงานซ้อนทับถ้ารอบก่อนยังไม่จบ
     concurrency:
       group: jobm-cron
       cancel-in-progress: false
@@ -29,25 +23,19 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
-
-      - name: Install Playwright browsers
-        run: python -m playwright install --with-deps chromium
-
-        - name: Collect outputs
-        run: | mkdir -p output || true
-
-      - name: Upload results
-        uses: actions/upload-artifact@v4
-        with:
-          name: scraped-output
-          path: output/
-
+          pip install playwright==1.46.0 pandas==2.2.2 lxml==5.3.0
+          python -m playwright install --with-deps chromium
 
       - name: Run scraper
         env:
           EDOCLITE_USER: ${{ secrets.EDOCLITE_USER }}
           EDOCLITE_PASS: ${{ secrets.EDOCLITE_PASS }}
-          GOOGLE_SHEET_ID: ${{ secrets.GOOGLE_SHEET_ID }}
-          GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
-        run: python scrape.py
+        run: |
+          python scrape.py
+
+      # ❗ อัปโหลด artifact หลังจากรันเสร็จ (ไม่ใช่ก่อน)
+      - name: Upload results
+        uses: actions/upload-artifact@v4
+        with:
+          name: scraped-output
+          path: output/
