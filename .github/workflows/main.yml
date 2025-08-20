@@ -2,7 +2,7 @@ name: JobM → Google Sheet (Cron)
 
 on:
   schedule:
-    - cron: "*/30 * * * *"   # ทุก 30 นาที (UTC)
+    - cron: "*/30 * * * *"
   workflow_dispatch:
 
 jobs:
@@ -32,18 +32,21 @@ jobs:
           EDOCLITE_PASS: ${{ secrets.EDOCLITE_PASS }}
           GOOGLE_SHEET_ID: ${{ secrets.GOOGLE_SHEET_ID }}
           GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
-        run: |
-          python scrape.py
+        run: python scrape.py
+        # ถ้าอยากให้ job ไม่ล้มทั้งงาน (เพื่อให้เห็น “เขียว”)
+        # continue-on-error: true
 
       - name: List files (debug)
+        if: always()
         run: |
           echo "workspace=$GITHUB_WORKSPACE"
           pwd
           ls -la
           ls -la output || true
-          find "$GITHUB_WORKSPACE" -maxdepth 2 -type d -name "output" -print || true
+          find "$GITHUB_WORKSPACE" -maxdepth 3 -type f -path "*/output/*" -print || true
 
       - name: Upload results
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: scraped-output
