@@ -34,6 +34,16 @@ jobs:
       - name: Install Playwright browsers
         run: python -m playwright install --with-deps chromium
 
+        - name: Collect outputs
+        run: | mkdir -p output || true
+
+      - name: Upload results
+        uses: actions/upload-artifact@v4
+        with:
+          name: scraped-output
+          path: output/
+
+
       - name: Run scraper
         env:
           EDOCLITE_USER: ${{ secrets.EDOCLITE_USER }}
