@@ -1,199 +1,222 @@
-# scrape.py — เวอร์ชันแก้ล็อกอิน + ดึงแท็บ
-import asyncio, json, os, re, sys
+import os
+import time
 from io import StringIO
 from pathlib import Path
-import pandas as pd
-import requests
-from playwright.async_api import async_playwright
 
-# ===== Config / Constants =====
+import pandas as pd
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait, Select
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import TimeoutException, NoSuchElementException
+
+# ========= CONFIG =========
+BASE  = "https://jobm.edoclite.com/jobManagement"
+LOGIN = f"{BASE}/pages/login"
+INDEX = f"{BASE}/pages/index"
+
+# ดึงจาก Secrets/Env ถ้าไม่ตั้ง จะใช้ค่าด้านหลัง (อย่าลืมใส่ใน GitHub Secrets)
 USER  = os.getenv("EDOCLITE_USER", "01000566")
 PASS  = os.getenv("EDOCLITE_PASS", "01000566")
-BASE  = "https://jobm.edoclite.com/jobManagement"
-LOGIN_PAGE = f"{BASE}/pages/login"
-LOGIN_POST = f"{BASE}/pages/login_db"
-INDEX      = f"{BASE}/pages/index"
-TABS       = [13, 14, 15, 8, 7, 11]
 
-OUT = Path("output"); OUT.mkdir(exist_ok=True)
+# แท็บที่ต้องดึง
+TABS  = [13, 14, 15, 8, 7, 11]
 
-# ฟิลเตอร์ XHR ที่ดูเหมือน endpoint ข้อมูล (สำหรับเก็บเพิ่ม ถ้ามี)
-XHR_ALLOW_HOST = "jobm.edoclite.com"
-URL_INCLUDE_RE = re.compile(r"(counter|api|ajax|list|data|table|report|online)\.(php|aspx|json)|/(api|ajax|data)/", re.I)
+# Google Sheets (ถ้าใส่ทั้งสองตัว จะอัปให้)
+GOOGLE_SHEET_ID = os.getenv("GOOGLE_SHEET_ID", "")
+GOOGLE_SERVICE_ACCOUNT_JSON = os.getenv("GOOGLE_SERVICE_ACCOUNT_JSON", "")
+
+OUT = Path("output")
+OUT.mkdir(exist_ok=True)
+# =========================
 
 
-# ===== Utilities =====
-def save_text(path: Path, text: str):
-    path.write_text(text, encoding="utf-8")
-
-async def dump_page(name, page):
-    try: save_text(OUT / f"{name}.html", await page.content())
-    except: pass
-
-# ===== 1) Requests login (แนะนำ) =====
-def requests_login_and_test(user: str, pw: str) -> requests.Session | None:
-    s = requests.Session()
-    s.headers.update({
-        "User-Agent": "Mozilla/5.0",
-        "Referer": LOGIN_PAGE,
-        "Origin": "https://jobm.edoclite.com",
-    })
-    # ส่งตามฟอร์มจริง: username, password, และปุ่ม name=login__username
-    payload = {
-        "username": user,
-        "password": pw,
-        "login__username": "ตกลง",
+def make_driver():
+    """สร้าง Chrome headless ที่เหมาะกับ GitHub Actions."""
+    opts = webdriver.ChromeOptions()
+    opts.add_argument("--headless=new")
+    opts.add_argument("--no-sandbox")
+    opts.add_argument("--disable-dev-shm-usage")
+    opts.add_argument("--disable-gpu")
+    opts.add_argument("--lang=th-TH")
+    opts.add_argument("--window-size=1400,2000")
+    # ปิดโหลดภาพ/ฟอนต์ให้เร็วขึ้น (ไม่บล็อค JS)
+    prefs = {
+        "profile.managed_default_content_settings.images": 2,
+        "profile.managed_default_content_settings.fonts": 2
     }
-    r = s.post(LOGIN_POST, data=payload, allow_redirects=True, timeout=30)
-    save_text(OUT / "after_login_requests.html", r.text)
+    opts.add_experimental_option("prefs", prefs)
+    return webdriver.Chrome(options=opts)
 
-    # ถ้ายังเห็น 'เข้าสู่ระบบ' หรือ URL กลับไป /login?error=… แปลว่ายังไม่ผ่าน
-    if ("เข้าสู่ระบบ" in r.text) or ("/login" in r.url):
-        return None
 
-    # ทดสอบเข้า index
-    t = s.get(f"{INDEX}?tab=13", allow_redirects=True, timeout=30)
-    save_text(OUT / "test_index_tab13_requests.html", t.text)
-    if ("เข้าสู่ระบบ" in t.text) or ("/login" in t.url):
-        return None
-    return s
+def wait_visible(driver, locator, timeout=15):
+    return WebDriverWait(driver, timeout).until(EC.visibility_of_element_located(locator))
 
-# ===== 2) Inject cookies จาก requests -> Playwright =====
-async def inject_cookies_from_requests(context, sess: requests.Session):
-    from urllib.parse import urlparse
-    u = urlparse(BASE)
-    cookies = []
-    for c in sess.cookies:
-        cookies.append({
-            "name": c.name,
-            "value": c.value,
-            "domain": u.hostname,
-            "path": "/",
-            "httpOnly": False,
-            "secure": True,
-        })
-    if cookies:
-        await context.add_cookies(cookies)
 
-# ===== 3) UI login (สำรองถ้า requests ไม่ผ่าน) =====
-async def ui_login(page, user: str, pw: str) -> bool:
-    await page.goto(LOGIN_PAGE, wait_until="domcontentloaded")
+def login(driver) -> bool:
+    driver.get(LOGIN)
+    # บันทึกหน้า login ไว้ดูย้อนหลัง
+    (OUT / "login_page.html").write_text(driver.page_source, encoding="utf-8")
 
-    # กรอกฟิลด์แบบเจาะจง
-    await page.fill('input[name="username"]', user)
-    await page.fill('input[name="password"]', pw)
+    wait_visible(driver, (By.NAME, "username"))
+    driver.find_element(By.NAME, "username").clear()
+    driver.find_element(By.NAME, "username").send_keys(USER)
+    driver.find_element(By.NAME, "password").clear()
+    driver.find_element(By.NAME, "password").send_keys(PASS)
 
-    # คลิกปุ่ม submit ที่ถูกตัว
-    # (บนหน้า login จริงปุ่มคือ <button name="login__username">ตกลง</button>)
-    await page.click('button[name="login__username"]')
-    await page.wait_for_load_state("networkidle")
+    # ปุ่ม submit ที่ถูกตัว
+    driver.find_element(By.NAME, "login__username").click()
 
-    # บันทึกหลัง login
-    await dump_page("after_ui_login", page)
-
-    # ลองเข้า index เพื่อเช็ค
-    await page.goto(INDEX, wait_until="networkidle")
-    html = await page.content()
-    await dump_page("after_ui_index", page)
-
-    if ("เข้าสู่ระบบ" in html) or ("pages/login" in page.url):
+    # รอเมนู/ลิงก์ที่มีเฉพาะหลังล็อกอิน (จากตัวอย่างของคุณ: “งานใหม่”)
+    try:
+        WebDriverWait(driver, 20).until(
+            EC.presence_of_element_located((By.XPATH, "//a[contains(., 'งานใหม่')]"))
+        )
+    except TimeoutException:
+        # เผื่อบางระบบเปลี่ยนข้อความ เมื่อล้มเหลวเก็บ HTML ไว้ดู
+        (OUT / "after_login_fail.html").write_text(driver.page_source, encoding="utf-8")
+        driver.save_screenshot(str(OUT / "after_login_fail.png"))
         return False
+
+    # เซฟหลักฐานหลังผ่าน
+    (OUT / "after_login_ok.html").write_text(driver.page_source, encoding="utf-8")
+    driver.save_screenshot(str(OUT / "after_login_ok.png"))
     return True
 
-# ===== 4) ดึงตารางจาก DOM (รวมหลายหน้าให้มากสุด) =====
-async def extract_tables_from_dom(page, tab) -> pd.DataFrame:
-    # พยายามเพิ่ม page length
-    length_sel = page.locator('select[name$="_length"], select.dt-input')
-    if await length_sel.count() > 0:
-        try:
-            opts = await length_sel.first.evaluate("(el)=>Array.from(el.options).map(o=>o.value)")
-            for v in ["-1","1000","500","250","100"]:
-                if v in opts:
-                    await length_sel.first.select_option(v)
-                    await page.wait_for_load_state("networkidle")
-                    break
-        except: pass
 
-    # กด next ให้สุด (กันตกหล่น)
-    next_btn = page.locator('a.paginate_button.next, button[aria-label="Next"], .dt-paging .dt-paging-button.next')
-    for _ in range(200):
-        if await next_btn.count()==0 or not await next_btn.first.is_enabled(): break
-        try:
-            await next_btn.first.click()
-            await page.wait_for_load_state("networkidle")
-        except:
-            break
+def datatables_expand_all_if_possible(driver):
+    """
+    พยายามสั่ง DataTables ให้แสดง All/จำนวนสูงสุด แล้วค่อยดึงตาราง
+    - หยิบ select ที่ลงท้ายด้วย _length หรือ select.dt-input
+    """
+    try:
+        sel = None
+        # candidates
+        for css in ['select[name$="_length"]', "select.dt-input"]:
+            elems = driver.find_elements(By.CSS_SELECTOR, css)
+            if elems:
+                sel = Select(elems[0])
+                break
+        if not sel:
+            return
 
-    # อ่านทุกตาราง
-    tables = await page.locator("table").all()
-    htmls  = [await t.evaluate("(el)=>el.outerHTML") for t in tables]
+        # ลองค่า -1 (All) หรือจำนวนสูงสุดที่หาเจอ
+        choices = [o.get_attribute("value") for o in sel.options]
+        for v in ["-1", "1000", "500", "250", "100"]:
+            if v in choices:
+                sel.select_by_value(v)
+                # รอให้ DataTables รีเฟรช
+                time.sleep(1.5)
+                break
+    except Exception:
+        pass
+
+
+def click_pagination_next_to_end(driver, max_clicks=200):
+    try:
+        for _ in range(max_clicks):
+            # ปุ่ม next แบบที่พบได้บ่อย
+            cand = driver.find_elements(By.CSS_SELECTOR, 'a.paginate_button.next, button[aria-label="Next"], .dt-paging .dt-paging-button.next')
+            if not cand:
+                return
+            btn = cand[0]
+            if "disabled" in (btn.get_attribute("class") or "").lower():
+                return
+            # ถ้าเป็น button element อาจใช้ is_enabled()
+            if hasattr(btn, "is_enabled") and not btn.is_enabled():
+                return
+            btn.click()
+            time.sleep(0.8)
+    except Exception:
+        pass
+
+
+def html_tables_to_df(html: str) -> pd.DataFrame:
     dfs = []
-    for h in htmls:
-        try:
-            for df in pd.read_html(StringIO(h)):
-                df.columns = [str(c).strip() for c in df.columns]
-                dfs.append(df)
-        except: pass
+    try:
+        for df in pd.read_html(StringIO(html)):
+            df.columns = [str(c).strip() for c in df.columns]
+            dfs.append(df)
+    except ValueError:
+        pass
+    return pd.concat(dfs, ignore_index=True) if dfs else pd.DataFrame()
 
-    if dfs:
-        out = pd.concat(dfs, ignore_index=True)
-        out.to_csv(OUT / f"tab_{tab}.csv", index=False)
-        return out
 
-    # เก็บร่างเพื่อตรวจ
-    await dump_page(f"tab_{tab}_body", page)
-    return pd.DataFrame()
+def fetch_tab(driver, tab: int) -> pd.DataFrame:
+    url = f"{INDEX}?tab={tab}"
+    driver.get(url)
 
-# ===== 5) Main =====
-async def main():
-    # 5.1 ล็อกอินด้วย Requests ก่อน
-    sess = requests_login_and_test(USER, PASS)
+    # ถ้ายังเด้งกลับหน้า login
+    if "เข้าสู่ระบบ" in driver.page_source:
+        (OUT / f"tab_{tab}_redirected_to_login.html").write_text(driver.page_source, encoding="utf-8")
+        return pd.DataFrame()
 
-    async with async_playwright() as p:
-        browser = await p.chromium.launch(
-            headless=True,
-            args=["--no-sandbox","--disable-dev-shm-usage","--disable-gpu"]
-        )
-        context = await browser.new_context(
-            viewport={"width": 1400, "height": 2000},
-            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124 Safari/537.36",
-            timezone_id="Asia/Bangkok",
-            locale="th-TH",
-        )
-        page = await context.new_page()
+    # พยายาม All + คลิก next จนสุด แล้วดึงตาราง
+    datatables_expand_all_if_possible(driver)
+    click_pagination_next_to_end(driver)
 
-        login_ok = False
+    html = driver.page_source
+    (OUT / f"tab_{tab}.html").write_text(html, encoding="utf-8")
+    df = html_tables_to_df(html)
+    if not df.empty:
+        df.to_csv(OUT / f"tab_{tab}.csv", index=False)
+    return df
 
-        if sess:
-            # 5.2 ถ้า Requests ผ่าน → ฉีดคุกกี้แล้วทดสอบเข้า index
-            await inject_cookies_from_requests(context, sess)
-            await page.goto(f"{INDEX}?tab=13", wait_until="networkidle")
-            html = await page.content()
-            await dump_page("after_cookie_inject", page)
-            login_ok = ("เข้าสู่ระบบ" not in html) and ("pages/login" not in page.url)
 
-        if not login_ok:
-            # 5.3 ถ้า Requests ไม่ผ่าน → ลอง UI login แบบเจาะจง selector
-            login_ok = await ui_login(page, USER, PASS)
+# ------------- Google Sheets -------------
+def get_gsheet():
+    if not (GOOGLE_SHEET_ID and GOOGLE_SERVICE_ACCOUNT_JSON):
+        return None
+    import json, gspread
+    from google.oauth2.service_account import Credentials
+    data = json.loads(GOOGLE_SERVICE_ACCOUNT_JSON)
+    scopes = [
+        "https://www.googleapis.com/auth/spreadsheets",
+        "https://www.googleapis.com/auth/drive",
+    ]
+    creds = Credentials.from_service_account_info(data, scopes=scopes)
+    gc = gspread.authorize(creds)
+    return gc.open_by_key(GOOGLE_SHEET_ID)
 
-        print("LOGIN_STATUS:", "OK" if login_ok else "FAIL")
-        if not login_ok:
-            # บังคับล้ม เพื่อให้เห็น artifacts ชัด ๆ
-            await browser.close()
-            sys.exit(1)
+def write_df_to_sheet(sh, title, df: pd.DataFrame):
+    if sh is None or df.empty:
+        return
+    import gspread
+    try:
+        ws = sh.worksheet(title)
+        ws.clear()
+    except gspread.WorksheetNotFound:
+        ws = sh.add_worksheet(title=title, rows=str(max(len(df)+10, 1000)), cols=str(max(len(df.columns)+5, 26)))
+    header = [str(c) for c in df.columns]
+    values = [header] + df.fillna("").astype(str).values.tolist()
+    ws.update("A1", values)
 
-        # 5.4 ดึงทุกแท็บ
+
+def main():
+    sh = get_gsheet()
+    driver = make_driver()
+    try:
+        ok = login(driver)
+        print("LOGIN_STATUS:", "OK" if ok else "FAIL")
+        if not ok:
+            # สร้างไฟล์ชี้ว่า run นี้ไม่มี data เพื่อให้ artifact step มีอะไรให้อัปโหลดเสมอ
+            (OUT / "NO_DATA.txt").write_text("Login failed. See after_login_fail.html/png", encoding="utf-8")
+            raise SystemExit(1)
+
+        any_data = False
         for t in TABS:
-            await page.goto(f"{INDEX}?tab={t}", wait_until="networkidle")
-            if "login" in page.url.lower():
-                await dump_page(f"tab_{t}_redirected_to_login", page)
-                print(f"TAB {t}: redirected to login")
-                continue
+            df = fetch_tab(driver, t)
+            print(f"TAB {t}: rows={len(df)} cols={len(df.columns)}")
+            if not df.empty:
+                any_data = True
+                write_df_to_sheet(sh, f"TAB_{t}", df)
 
-            df = await extract_tables_from_dom(page, t)
-            print(f"TAB {t} -> rows={len(df)} cols={len(df.columns)}")
+        if not any_data:
+            (OUT / "NO_DATA.txt").write_text("All tabs empty or tables not found. See tab_*.html", encoding="utf-8")
 
-        await browser.close()
+    finally:
+        driver.quit()
+
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()
