@@ -1,0 +1,38 @@
+name: scrape
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "22 * * * *"
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - run: pip install -r requirements.txt
+
+      # ติดตั้ง chromium & deps ของ Playwright
+      - run: python -m playwright install --with-deps chromium
+
+      - name: Run scraper
+        env:
+          EDOCLITE_USER: ${{ secrets.EDOCLITE_USER }}
+          EDOCLITE_PASS: ${{ secrets.EDOCLITE_PASS }}
+          # (ถ้ามี Google Sheet ก็เติมสองตัวนี้ทีหลัง)
+          # GOOGLE_SHEET_ID: ${{ secrets.GOOGLE_SHEET_ID }}
+          # GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
+        run: |
+          echo "workspace=$GITHUB_WORKSPACE"
+          python scrape.py
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: scraped-output
+          path: output/
+          if-no-files-found: ignore
