@@ -5,3 +5,5 @@ gspread==6.1.2
 google-auth==2.33.0
 beautifulsoup4==4.12.3
 requests==2.32.3
+selenium==4.23.1
+gspread==6.1.2
