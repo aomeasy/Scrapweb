@@ -49,7 +49,20 @@ def get_gspread_client() -> gspread.Client:
     try:
         if SVC_JSON_B64:
             logger.info("กำลังใช้ Service Account จาก Base64...")
-            info = json.loads(base64.b64decode(SVC_JSON_B64).decode("utf-8"))
+            logger.info(f"Base64 length: {len(SVC_JSON_B64)}")
+            
+            # ทดสอบ decode base64
+            try:
+                decoded_bytes = base64.b64decode(SVC_JSON_B64)
+                logger.info(f"Decoded bytes length: {len(decoded_bytes)}")
+                decoded_str = decoded_bytes.decode("utf-8")
+                logger.info("✅ Base64 decode สำเร็จ")
+                info = json.loads(decoded_str)
+                logger.info("✅ JSON parse สำเร็จ")
+            except Exception as decode_error:
+                logger.error(f"❌ Base64 decode error: {decode_error}")
+                raise RuntimeError(f"Base64 decode failed: {decode_error}")
+                
         elif SVC_JSON_RAW:
             logger.info("กำลังใช้ Service Account จาก JSON ดิบ...")
             info = json.loads(SVC_JSON_RAW)
@@ -64,13 +77,26 @@ def get_gspread_client() -> gspread.Client:
                 "กรุณาตั้งค่า GOOGLE_SERVICE_ACCOUNT_JSON หรือ GOOGLE_SERVICE_ACCOUNT_JSON_B64"
             )
 
+        # ตรวจสอบข้อมูลสำคัญ
+        required_fields = ['type', 'project_id', 'private_key', 'client_email']
+        for field in required_fields:
+            if field not in info:
+                raise RuntimeError(f"❌ ไม่พบฟิลด์ {field} ใน Service Account JSON")
+        
+        logger.info(f"📧 Service Account Email: {info['client_email']}")
+        logger.info(f"🆔 Project ID: {info['project_id']}")
+
         creds = Credentials.from_service_account_info(info, scopes=SCOPES)
-        return gspread.authorize(creds)
+        client = gspread.authorize(creds)
+        logger.info("✅ เชื่อมต่อ Google Sheets API สำเร็จ")
+        return client
         
     except json.JSONDecodeError as e:
-        raise RuntimeError(f"❌ Service Account JSON ไม่ถูกต้อง: {e}")
+        logger.error(f"❌ JSON decode error: {e}")
+        raise RuntimeError(f"Service Account JSON ไม่ถูกต้อง: {e}")
     except Exception as e:
-        raise RuntimeError(f"❌ ไม่สามารถเชื่อมต่อ Google Sheets: {e}")
+        logger.error(f"❌ Google Sheets connection error: {e}")
+        raise RuntimeError(f"ไม่สามารถเชื่อมต่อ Google Sheets: {e}")
 
 def upsert_worksheet(sh: gspread.Spreadsheet, title: str, df: pd.DataFrame) -> None:
     """สร้างหรืออัปเดต worksheet ใน Google Sheets"""
