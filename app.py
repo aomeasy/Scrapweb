@@ -36,8 +36,8 @@ def add_log(message):
         scraping_status['logs'] = scraping_status['logs'][-50:]
     logger.info(message)
 
-async def run_scraping_async():
-    """Run scraping in async context"""
+def run_scraping_sync():
+    """Run scraping in sync context"""
     global scraping_status
     try:
         scraping_status['is_running'] = True
@@ -48,7 +48,7 @@ async def run_scraping_async():
         app_instance = JobSyncApplication(app_config)
         
         scraping_status['progress'] = 'กำลังดำเนินการ...'
-        await app_instance.run()
+        app_instance.run()
         
         scraping_status['last_result'] = 'สำเร็จ'
         scraping_status['progress'] = 'เสร็จสิ้น'
@@ -63,11 +63,8 @@ async def run_scraping_async():
         scraping_status['last_run'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
 def run_scraping_thread():
-    """Run scraping in a new event loop (for threading)"""
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    loop.run_until_complete(run_scraping_async())
-    loop.close()
+    """Run scraping in a separate thread"""
+    run_scraping_sync()
 
 @app.route('/')
 def dashboard():
