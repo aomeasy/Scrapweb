@@ -4,6 +4,7 @@ import os
 import json
 import base64
 import sys
+import time
 from io import StringIO
 from typing import List, Tuple, Optional, Dict, Any
 from datetime import datetime, timezone
@@ -12,9 +13,12 @@ import pandas as pd
 import requests
 import gspread
 from google.oauth2.service_account import Credentials
-from selenium_wrapper import sync_selenium
-from selenium.webdriver.remote.webdriver import WebDriver as Page
-from selenium.webdriver.remote.webdriver import WebDriver as BrowserContext
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait, Select
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.chrome.options import Options
+from selenium.common.exceptions import TimeoutException, NoSuchElementException
 import logging
 
 # ==============================================================================
@@ -153,59 +157,102 @@ class GoogleSheetManager:
 # ==============================================================================
 
 class WebScraper:
-    """จัดการกระบวนการ Scrape ข้อมูลจากเว็บไซต์ด้วย Playwright"""
+    """จัดการกระบวนการ Scrape ข้อมูลจากเว็บไซต์ด้วย Selenium"""
     def __init__(self, user: str, password: str):
         self.user = user
         self.password = password
         if not self.user or not self.password:
             raise ValueError("EDOCLITE_USER and EDOCLITE_PASS must be set.")
 
-    def login(self, context: BrowserContext) -> Tuple[bool, Page]:
-        page = context
+    def create_driver(self) -> webdriver.Chrome:
+        """สร้าง Chrome WebDriver ด้วย options ที่เหมาะสม"""
+        chrome_options = Options()
+        chrome_options.add_argument("--headless")
+        chrome_options.add_argument("--no-sandbox")
+        chrome_options.add_argument("--disable-dev-shm-usage")
+        chrome_options.add_argument("--disable-gpu")
+        chrome_options.add_argument("--window-size=1920,1080")
+        chrome_options.add_argument("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36")
+        
+        return webdriver.Chrome(options=chrome_options)
+
+    def login(self, driver: webdriver.Chrome) -> Tuple[bool, webdriver.Chrome]:
+        """เข้าสู่ระบบ"""
         try:
             logger.info(f"Navigating to login page: {Config.LOGIN_URL}")
-            page.get(Config.LOGIN_URL)
-            page.find_element("name", "username").send_keys(self.user)
-            page.find_element("name", "password").send_keys(self.password)
-            page.find_element("name", "login__username").click()
-            # Wait and check URL
-            import time
+            driver.get(Config.LOGIN_URL)
+            
+            # รอให้หน้าโหลดและหา elements
+            wait = WebDriverWait(driver, 10)
+            
+            # ใส่ username
+            username_field = wait.until(EC.presence_of_element_located((By.NAME, "username")))
+            username_field.clear()
+            username_field.send_keys(self.user)
+            
+            # ใส่ password
+            password_field = driver.find_element(By.NAME, "password")
+            password_field.clear()
+            password_field.send_keys(self.password)
+            
+            # คลิก login button
+            login_button = driver.find_element(By.NAME, "login__username")
+            login_button.click()
+            
+            # รอให้เปลี่ยนหน้า
             time.sleep(3)
-            if "login" in page.current_url.lower():
+            
+            # ตรวจสอบว่า login สำเร็จหรือไม่
+            if "login" in driver.current_url.lower():
                 logger.error("❌ Login failed: Redirected back to login page.")
-                return False, page
+                return False, driver
+            
             logger.info("✅ Login successful.")
-            return True, page
+            return True, driver
+            
         except Exception as e:
             logger.error(f"❌ Exception during login: {e}")
-            page.save_screenshot("login_error.png")
-            return False, page
+            driver.save_screenshot("login_error.png")
+            return False, driver
 
-    def extract_data_from_tab(self, page: Page, tab_num: int) -> pd.DataFrame:
+    def extract_data_from_tab(self, driver: webdriver.Chrome, tab_num: int) -> pd.DataFrame:
+        """ดึงข้อมูลจากแต่ละ tab"""
         url = f"{Config.INDEX_URL}?tab={tab_num}"
         logger.info(f"Scraping tab {tab_num} at {url}")
+        
         try:
-            page.get(url)
-            import time
+            driver.get(url)
             time.sleep(3)
+            
+            # พยายามเปลี่ยน page length เป็น show all
             try:
-                length_selector = page.find_element("css selector", 'select[name$="_length"], select.dt-input')
-                length_selector.send_keys("-1")
+                wait = WebDriverWait(driver, 5)
+                length_select = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, 'select[name$="_length"]')))
+                select = Select(length_select)
+                select.select_by_value("-1")
                 time.sleep(2)
                 logger.info("Set table length to show all entries.")
-            except:
+            except (TimeoutException, NoSuchElementException):
+                logger.warning("Could not find or change page length selector.")
                 pass
-            html_content = page.page_source
+            
+            # ดึง HTML content
+            html_content = driver.page_source
+            
+            # แปลง HTML เป็น DataFrame
             dfs = pd.read_html(StringIO(html_content))
             job_df = next((df for df in dfs if not df.empty and any('job' in str(col).lower() for col in df.columns)), pd.DataFrame())
+            
             if job_df.empty:
                 logger.warning(f"⚠️ No data table found on tab {tab_num}.")
                 return pd.DataFrame()
+            
             logger.info(f"📊 Found {len(job_df)} rows in tab {tab_num}.")
             return job_df
+            
         except Exception as e:
             logger.error(f"❌ Failed to extract data from tab {tab_num}: {e}")
-            page.save_screenshot(f"tab_{tab_num}_error.png")
+            driver.save_screenshot(f"tab_{tab_num}_error.png")
             return pd.DataFrame()
 
 # ==============================================================================
@@ -287,34 +334,32 @@ class JobSyncApplication:
         
         all_tab_data = {}
         successful_tabs, failed_tabs = [], []
-    
-        with sync_selenium() as p:
-            browser = p.chrome.launch(headless=True, args=["--no-sandbox"])
-            context = browser.new_context(
-                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
-            )
-            
-            logged_in, page = self.scraper.login(context)
+        
+        # สร้าง WebDriver
+        driver = self.scraper.create_driver()
+        
+        try:
+            # Login
+            logged_in, driver = self.scraper.login(driver)
             if not logged_in:
                 self.notifier.send("❌ Critical Error: Login to edoclite failed. Please check credentials.")
                 self.sheet_manager.log_activity("Login Failed", "Could not log in.", "Failed")
-                browser.close()
                 return
-    
+            
+            # Scrape แต่ละ tab
             for tab in self.config.TABS_TO_SCRAPE:
-                df = self.scraper.extract_data_from_tab(page, tab)
+                df = self.scraper.extract_data_from_tab(driver, tab)
                 if not df.empty:
                     all_tab_data[tab] = df
                     successful_tabs.append(tab)
                 else:
                     failed_tabs.append(tab)
-                import time
                 time.sleep(1)
-            
-            browser.close()
         
-        # ส่วนที่เหลือเหมือนเดิม...
-
+        finally:
+            # ปิด browser
+            driver.quit()
+        
         # ประมวลผลและเพิ่มข้อมูลใหม่เท่านั้น
         new_jobs_count = self._process_and_add_new_jobs(all_tab_data)
         
