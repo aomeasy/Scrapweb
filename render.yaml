@@ -1,0 +1,27 @@
+services:
+  - type: web
+    name: job-scraper-webapp
+    env: python
+    buildCommand: |
+      pip install --upgrade pip
+      pip install -r requirements.txt
+      playwright install chromium
+      playwright install-deps
+    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --workers 1 --timeout 120
+    plan: free
+    healthCheckPath: /
+    envVars:
+      - key: FLASK_SECRET_KEY
+        generateValue: true
+      - key: EDOCLITE_USER
+        sync: false
+      - key: EDOCLITE_PASS
+        sync: false
+      - key: GOOGLE_SHEET_ID
+        sync: false
+      - key: GOOGLE_SERVICE_ACCOUNT_JSON_B64
+        sync: false
+      - key: LINE_NOTIFY_TOKEN
+        sync: false
+      - key: PYTHONUNBUFFERED
+        value: "1"
