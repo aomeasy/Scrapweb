@@ -6,7 +6,7 @@ import queue
 from flask import Flask, render_template, jsonify, request
 
 # สมมติว่าโค้ด scraper ของคุณอยู่ในไฟล์ scraper_app.py และมีคลาส JobSyncApplication
-from scraper_app import JobSyncApplication, Config 
+from scraper import JobSyncApplication, Config 
 
 app = Flask(__name__)
 
