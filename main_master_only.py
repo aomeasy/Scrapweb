@@ -3,7 +3,6 @@
 import os
 import json
 import base64
-import asyncio
 import sys
 from io import StringIO
 from typing import List, Tuple, Optional, Dict, Any
@@ -13,7 +12,9 @@ import pandas as pd
 import requests
 import gspread
 from google.oauth2.service_account import Credentials
-from playwright.async_api import async_playwright, Page, BrowserContext
+from selenium_wrapper import sync_selenium
+from selenium.webdriver.remote.webdriver import WebDriver as Page
+from selenium.webdriver.remote.webdriver import WebDriver as BrowserContext
 import logging
 
 # ==============================================================================
@@ -159,36 +160,42 @@ class WebScraper:
         if not self.user or not self.password:
             raise ValueError("EDOCLITE_USER and EDOCLITE_PASS must be set.")
 
-    async def login(self, context: BrowserContext) -> Tuple[bool, Page]:
-        page = await context.new_page()
+    def login(self, context: BrowserContext) -> Tuple[bool, Page]:
+        page = context
         try:
             logger.info(f"Navigating to login page: {Config.LOGIN_URL}")
-            await page.goto(Config.LOGIN_URL, wait_until="domcontentloaded", timeout=30_000)
-            await page.fill('input[name="username"]', self.user, timeout=10_000)
-            await page.fill('input[name="password"]', self.password, timeout=10_000)
-            await page.click('button[name="login__username"], input[name="login__username"]')
-            await page.wait_for_url(f"{Config.INDEX_URL}**", timeout=30_000)
-            if "login" in page.url.lower():
+            page.get(Config.LOGIN_URL)
+            page.find_element("name", "username").send_keys(self.user)
+            page.find_element("name", "password").send_keys(self.password)
+            page.find_element("name", "login__username").click()
+            # Wait and check URL
+            import time
+            time.sleep(3)
+            if "login" in page.current_url.lower():
                 logger.error("❌ Login failed: Redirected back to login page.")
                 return False, page
             logger.info("✅ Login successful.")
             return True, page
         except Exception as e:
             logger.error(f"❌ Exception during login: {e}")
-            await page.screenshot(path="login_error.png")
+            page.save_screenshot("login_error.png")
             return False, page
 
-    async def extract_data_from_tab(self, page: Page, tab_num: int) -> pd.DataFrame:
+    def extract_data_from_tab(self, page: Page, tab_num: int) -> pd.DataFrame:
         url = f"{Config.INDEX_URL}?tab={tab_num}"
         logger.info(f"Scraping tab {tab_num} at {url}")
         try:
-            await page.goto(url, wait_until="networkidle", timeout=30_000)
-            length_selector = page.locator('select[name$="_length"], select.dt-input').first
-            if await length_selector.count() > 0:
-                await length_selector.select_option(value="-1")
-                await page.wait_for_timeout(2000)
+            page.get(url)
+            import time
+            time.sleep(3)
+            try:
+                length_selector = page.find_element("css selector", 'select[name$="_length"], select.dt-input')
+                length_selector.send_keys("-1")
+                time.sleep(2)
                 logger.info("Set table length to show all entries.")
-            html_content = await page.content()
+            except:
+                pass
+            html_content = page.page_source
             dfs = pd.read_html(StringIO(html_content))
             job_df = next((df for df in dfs if not df.empty and any('job' in str(col).lower() for col in df.columns)), pd.DataFrame())
             if job_df.empty:
@@ -198,7 +205,7 @@ class WebScraper:
             return job_df
         except Exception as e:
             logger.error(f"❌ Failed to extract data from tab {tab_num}: {e}")
-            await page.screenshot(path=f"tab_{tab_num}_error.png")
+            page.save_screenshot(f"tab_{tab_num}_error.png")
             return pd.DataFrame()
 
 # ==============================================================================
@@ -273,38 +280,40 @@ class JobSyncApplication:
 
         return len(new_records_to_add)
 
-    async def run(self):
+    def run(self):
         """ฟังก์ชันหลักสำหรับรันกระบวนการทั้งหมด"""
         start_time = datetime.now()
         self.sheet_manager.log_activity("Sync Start", "Starting job synchronization process.")
         
         all_tab_data = {}
         successful_tabs, failed_tabs = [], []
-
-        async with async_playwright() as p:
-            browser = await p.chromium.launch(headless=True, args=["--no-sandbox"])
-            context = await browser.new_context(
-                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-                ignore_https_errors=True
+    
+        with sync_selenium() as p:
+            browser = p.chrome.launch(headless=True, args=["--no-sandbox"])
+            context = browser.new_context(
+                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
             )
             
-            logged_in, page = await self.scraper.login(context)
+            logged_in, page = self.scraper.login(context)
             if not logged_in:
                 self.notifier.send("❌ Critical Error: Login to edoclite failed. Please check credentials.")
                 self.sheet_manager.log_activity("Login Failed", "Could not log in.", "Failed")
-                await browser.close()
+                browser.close()
                 return
-
+    
             for tab in self.config.TABS_TO_SCRAPE:
-                df = await self.scraper.extract_data_from_tab(page, tab)
+                df = self.scraper.extract_data_from_tab(page, tab)
                 if not df.empty:
                     all_tab_data[tab] = df
                     successful_tabs.append(tab)
                 else:
                     failed_tabs.append(tab)
-                await asyncio.sleep(1)
+                import time
+                time.sleep(1)
             
-            await browser.close()
+            browser.close()
+        
+        # ส่วนที่เหลือเหมือนเดิม...
 
         # ประมวลผลและเพิ่มข้อมูลใหม่เท่านั้น
         new_jobs_count = self._process_and_add_new_jobs(all_tab_data)
@@ -339,7 +348,7 @@ if __name__ == "__main__":
     try:
         app_config = Config()
         app = JobSyncApplication(app_config)
-        asyncio.run(app.run())
+        app.run()
         sys.exit(0)
     except (ValueError, gspread.exceptions.GSpreadException) as e:
         logger.error(f"💥 Configuration or Google Sheets Error: {e}")
