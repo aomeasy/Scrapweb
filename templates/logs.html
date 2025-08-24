@@ -4,75 +4,599 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Logs - Job Scraper</title>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/3.4.1/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
-        .gradient-bg {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        :root {
+            --primary-color: #6366f1;
+            --secondary-color: #8b5cf6;
+            --accent-color: #06b6d4;
+            --glass-bg: rgba(255, 255, 255, 0.15);
+            --glass-border: rgba(255, 255, 255, 0.2);
+            --text-primary: #1f2937;
+            --text-secondary: #6b7280;
         }
+
+        [data-theme="dark"] {
+            --glass-bg: rgba(17, 24, 39, 0.4);
+            --glass-border: rgba(75, 85, 99, 0.3);
+            --text-primary: #f9fafb;
+            --text-secondary: #d1d5db;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            min-height: 100vh;
+            color: var(--text-primary);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            transition: all 0.3s ease;
+        }
+
+        [data-theme="dark"] body {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+        }
+
+        .glass-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            box-shadow: 0 25px 45px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .glass-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 35px 65px rgba(0, 0, 0, 0.15);
+        }
+
+        .glass-nav {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        [data-theme="dark"] .glass-nav {
+            background: rgba(17, 24, 39, 0.3);
+            border-bottom: 1px solid rgba(75, 85, 99, 0.2);
+        }
+
+        .nav-item {
+            position: relative;
+            overflow: hidden;
+            border-radius: 12px;
+            transition: all 0.3s ease;
+        }
+
+        .nav-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: all 0.3s ease;
+        }
+
+        .nav-item:hover::before {
+            left: 100%;
+        }
+
+        .nav-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .btn-modern {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            border: none;
+            border-radius: 16px;
+            padding: 12px 24px;
+            color: white;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 8px 25px rgba(99, 102, 241, 0.3);
+            position: relative;
+            overflow: hidden;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-modern::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            transition: all 0.3s ease;
+            transform: translate(-50%, -50%);
+        }
+
+        .btn-modern:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        .btn-modern:hover {
+            transform: translateY(-2px) scale(1.02);
+            box-shadow: 0 15px 35px rgba(99, 102, 241, 0.4);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            box-shadow: 0 8px 25px rgba(239, 68, 68, 0.3);
+        }
+
+        .btn-danger:hover {
+            box-shadow: 0 15px 35px rgba(239, 68, 68, 0.4);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #6b7280, #4b5563);
+            box-shadow: 0 8px 25px rgba(107, 114, 128, 0.3);
+        }
+
+        .btn-secondary:hover {
+            box-shadow: 0 15px 35px rgba(107, 114, 128, 0.4);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #10b981, #059669);
+            box-shadow: 0 8px 25px rgba(16, 185, 129, 0.3);
+        }
+
+        .btn-success:hover {
+            box-shadow: 0 15px 35px rgba(16, 185, 129, 0.4);
+        }
+
         .log-container {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 20px;
+            border: 1px solid var(--glass-border);
             max-height: 70vh;
             overflow-y: auto;
+            position: relative;
         }
+
+        .log-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 20px;
+            background: linear-gradient(to bottom, var(--glass-bg), transparent);
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .log-container::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 20px;
+            background: linear-gradient(to top, var(--glass-bg), transparent);
+            pointer-events: none;
+            z-index: 10;
+        }
+
         .log-entry {
-            border-left: 3px solid #e5e7eb;
-            transition: all 0.2s ease;
+            padding: 16px 24px;
+            margin: 8px 16px;
+            font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            border-radius: 12px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+            border-left: 4px solid #6b7280;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            word-wrap: break-word;
+            white-space: pre-wrap;
         }
+
+        .log-entry::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.03), transparent);
+            transform: translateX(-100%);
+            transition: transform 0.6s ease;
+        }
+
+        .log-entry:hover::before {
+            transform: translateX(100%);
+        }
+
         .log-entry:hover {
-            border-left-color: #3b82f6;
-            background-color: #f8fafc;
+            transform: translateX(8px) scale(1.002);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+            background: rgba(255, 255, 255, 0.08);
         }
-        .log-success { border-left-color: #10b981; }
-        .log-warning { border-left-color: #f59e0b; }
-        .log-error { border-left-color: #ef4444; }
-        .log-info { border-left-color: #3b82f6; }
+
+        .log-entry.success {
+            border-left-color: #10b981;
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(5, 150, 105, 0.05));
+        }
+
+        .log-entry.success::after {
+            content: '✅';
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            font-size: 12px;
+        }
+
+        .log-entry.error {
+            border-left-color: #ef4444;
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(220, 38, 38, 0.05));
+        }
+
+        .log-entry.error::after {
+            content: '❌';
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            font-size: 12px;
+        }
+
+        .log-entry.warning {
+            border-left-color: #f59e0b;
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(217, 119, 6, 0.05));
+        }
+
+        .log-entry.warning::after {
+            content: '⚠️';
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            font-size: 12px;
+        }
+
+        .log-entry.info {
+            border-left-color: #3b82f6;
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(37, 99, 235, 0.05));
+        }
+
+        .log-entry.info::after {
+            content: 'ℹ️';
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            font-size: 12px;
+        }
+
+        .stat-card {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.03), transparent);
+            transform: rotate(45deg);
+            transition: all 0.3s ease;
+            opacity: 0;
+        }
+
+        .stat-card:hover::after {
+            opacity: 1;
+            animation: shine 0.6s ease-in-out;
+        }
+
+        @keyframes shine {
+            0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+            100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+        }
+
+        .theme-toggle {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 50px;
+            width: 80px;
+            height: 40px;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .theme-toggle-slider {
+            position: absolute;
+            top: 4px;
+            left: 4px;
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            border-radius: 50%;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 14px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        [data-theme="dark"] .theme-toggle-slider {
+            transform: translateX(40px);
+        }
+
+        .floating-elements {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .floating-element {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 50%;
+            animation: float 6s ease-in-out infinite;
+        }
+
+        .floating-element:nth-child(1) {
+            width: 80px;
+            height: 80px;
+            top: 20%;
+            left: 10%;
+            animation-delay: 0s;
+        }
+
+        .floating-element:nth-child(2) {
+            width: 120px;
+            height: 120px;
+            top: 60%;
+            right: 10%;
+            animation-delay: 2s;
+        }
+
+        .floating-element:nth-child(3) {
+            width: 60px;
+            height: 60px;
+            bottom: 20%;
+            left: 20%;
+            animation-delay: 4s;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-20px) rotate(180deg); }
+        }
+
+        .auto-refresh-indicator {
+            display: inline-flex;
+            align-items: center;
+            padding: 6px 12px;
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(5, 150, 105, 0.1));
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            color: #10b981;
+        }
+
+        .auto-refresh-indicator.active::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            background: #10b981;
+            border-radius: 50%;
+            margin-right: 8px;
+            animation: pulse 2s infinite;
+        }
+
+        .toast {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+            transform: translateX(400px);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .toast.show {
+            transform: translateX(0);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 80px 40px;
+        }
+
+        .empty-state i {
+            font-size: 4rem;
+            opacity: 0.3;
+            margin-bottom: 2rem;
+            display: block;
+        }
+
+        .fade-in {
+            animation: fadeIn 0.6s ease-out;
+        }
+
+        .slide-up {
+            animation: slideUp 0.6s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.1); }
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--primary-color);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--secondary-color);
+        }
+
+        /* Log search and filter */
+        .log-filter {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 16px;
+        }
+
+        .filter-tag {
+            padding: 6px 12px;
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .filter-tag.active {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+
+        .filter-tag:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .glass-card {
+                border-radius: 16px;
+                margin: 8px;
+            }
+            
+            .btn-modern {
+                padding: 10px 20px;
+                font-size: 13px;
+            }
+            
+            .log-entry {
+                margin: 6px 12px;
+                padding: 12px 16px;
+                font-size: 12px;
+            }
+        }
     </style>
 </head>
-<body class="bg-gray-100 min-h-screen">
+<body data-theme="light">
+    <!-- Floating Background Elements -->
+    <div class="floating-elements">
+        <div class="floating-element"></div>
+        <div class="floating-element"></div>
+        <div class="floating-element"></div>
+    </div>
+
     <!-- Navigation -->
-    <nav class="gradient-bg shadow-lg">
+    <nav class="glass-nav sticky top-0 z-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between h-16">
+            <div class="flex justify-between items-center h-16">
                 <div class="flex items-center">
-                    <i class="fas fa-robot text-white text-2xl mr-3"></i>
+                    <div class="text-white text-2xl mr-3">
+                        <i class="fas fa-robot"></i>
+                    </div>
                     <span class="text-white text-xl font-bold">Job Scraper Control Panel</span>
                 </div>
-                <div class="flex items-center space-x-4">
-                    <a href="{{ url_for('dashboard') }}" class="text-white hover:text-gray-200 px-3 py-2 rounded-md">
+                
+                <div class="flex items-center space-x-2">
+                    <a href="{{ url_for('dashboard') }}" class="nav-item text-white hover:text-gray-200 px-4 py-2 rounded-xl transition-all duration-300">
                         <i class="fas fa-tachometer-alt mr-2"></i>Dashboard
                     </a>
-                    <a href="{{ url_for('view_data') }}" class="text-white hover:text-gray-200 px-3 py-2 rounded-md">
+                    <a href="{{ url_for('view_data') }}" class="nav-item text-white hover:text-gray-200 px-4 py-2 rounded-xl transition-all duration-300">
                         <i class="fas fa-table mr-2"></i>ข้อมูล
                     </a>
-                    <a href="{{ url_for('settings') }}" class="text-white hover:text-gray-200 px-3 py-2 rounded-md">
+                    <a href="{{ url_for('settings') }}" class="nav-item text-white hover:text-gray-200 px-4 py-2 rounded-xl transition-all duration-300">
                         <i class="fas fa-cog mr-2"></i>ตั้งค่า
                     </a>
-                    <a href="{{ url_for('view_logs') }}" class="text-white hover:text-gray-200 px-3 py-2 rounded-md bg-white bg-opacity-20">
+                    <a href="{{ url_for('view_logs') }}" class="nav-item text-white hover:text-gray-200 px-4 py-2 rounded-xl transition-all duration-300 bg-white bg-opacity-20">
                         <i class="fas fa-file-alt mr-2"></i>Logs
                     </a>
+                    
+                    <!-- Theme Toggle -->
+                    <div class="theme-toggle ml-4" onclick="toggleTheme()">
+                        <div class="theme-toggle-slider">
+                            <i class="fas fa-sun" id="theme-icon"></i>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </nav>
 
-    <div class="max-w-6xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-6xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
         <!-- Header -->
-        <div class="mb-6">
-            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center">
+        <div class="mb-8 fade-in">
+            <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
                 <div>
-                    <h1 class="text-3xl font-bold text-gray-900">System Logs</h1>
-                    <p class="text-gray-600 mt-2">ติดตามกิจกรรมและสถานะของระบบ</p>
+                    <h1 class="text-4xl font-bold mb-2">System Logs</h1>
+                    <p class="text-lg opacity-70">ติดตามกิจกรรมและสถานะของระบบแบบเรียลไทม์</p>
                 </div>
-                <div class="flex space-x-3 mt-4 sm:mt-0">
-                    <button onclick="clearLogs()" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg inline-flex items-center transition-colors">
+                <div class="flex flex-col sm:flex-row gap-3">
+                    <div class="auto-refresh-indicator" id="auto-refresh-status">
+                        Auto Refresh: OFF
+                    </div>
+                    <button onclick="clearLogs()" class="btn-modern btn-danger">
                         <i class="fas fa-trash mr-2"></i>
                         เคลียร์ Logs
                     </button>
-                    <button onclick="refreshLogs()" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg inline-flex items-center transition-colors">
+                    <button onclick="refreshLogs()" class="btn-modern btn-secondary">
                         <i class="fas fa-sync-alt mr-2"></i>
                         รีเฟรช
                     </button>
-                    <button onclick="toggleAutoRefresh()" id="auto-refresh-btn" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg inline-flex items-center transition-colors">
+                    <button onclick="toggleAutoRefresh()" id="auto-refresh-btn" class="btn-modern btn-success">
                         <i class="fas fa-play mr-2"></i>
                         Auto Refresh
                     </button>
@@ -81,70 +605,93 @@
         </div>
 
         <!-- Stats -->
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-            <div class="bg-white rounded-lg shadow-sm p-4">
-                <div class="flex items-center">
-                    <i class="fas fa-list text-blue-500 text-xl mr-3"></i>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8 fade-in">
+            <div class="glass-card p-6 stat-card">
+                <div class="flex items-center justify-between mb-4">
                     <div>
-                        <p class="text-sm text-gray-600">ทั้งหมด</p>
-                        <p class="text-2xl font-bold text-gray-900" id="total-logs">{{ logs|length }}</p>
+                        <p class="text-sm opacity-70 mb-1">ทั้งหมด</p>
+                        <p class="text-3xl font-bold" id="total-logs">{{ logs|length }}</p>
                     </div>
+                    <i class="fas fa-list text-3xl opacity-20"></i>
                 </div>
             </div>
-            <div class="bg-white rounded-lg shadow-sm p-4">
-                <div class="flex items-center">
-                    <i class="fas fa-check-circle text-green-500 text-xl mr-3"></i>
+            <div class="glass-card p-6 stat-card">
+                <div class="flex items-center justify-between mb-4">
                     <div>
-                        <p class="text-sm text-gray-600">สำเร็จ</p>
-                        <p class="text-2xl font-bold text-gray-900" id="success-count">0</p>
+                        <p class="text-sm opacity-70 mb-1">สำเร็จ</p>
+                        <p class="text-3xl font-bold text-green-400" id="success-count">0</p>
                     </div>
+                    <i class="fas fa-check-circle text-3xl opacity-20"></i>
                 </div>
             </div>
-            <div class="bg-white rounded-lg shadow-sm p-4">
-                <div class="flex items-center">
-                    <i class="fas fa-exclamation-triangle text-yellow-500 text-xl mr-3"></i>
+            <div class="glass-card p-6 stat-card">
+                <div class="flex items-center justify-between mb-4">
                     <div>
-                        <p class="text-sm text-gray-600">คำเตือน</p>
-                        <p class="text-2xl font-bold text-gray-900" id="warning-count">0</p>
+                        <p class="text-sm opacity-70 mb-1">คำเตือน</p>
+                        <p class="text-3xl font-bold text-yellow-400" id="warning-count">0</p>
                     </div>
+                    <i class="fas fa-exclamation-triangle text-3xl opacity-20"></i>
                 </div>
             </div>
-            <div class="bg-white rounded-lg shadow-sm p-4">
-                <div class="flex items-center">
-                    <i class="fas fa-times-circle text-red-500 text-xl mr-3"></i>
+            <div class="glass-card p-6 stat-card">
+                <div class="flex items-center justify-between mb-4">
                     <div>
-                        <p class="text-sm text-gray-600">ข้อผิดพลาด</p>
-                        <p class="text-2xl font-bold text-gray-900" id="error-count">0</p>
+                        <p class="text-sm opacity-70 mb-1">ข้อผิดพลาด</p>
+                        <p class="text-3xl font-bold text-red-400" id="error-count">0</p>
                     </div>
+                    <i class="fas fa-times-circle text-3xl opacity-20"></i>
                 </div>
             </div>
         </div>
 
         <!-- Logs Container -->
-        <div class="bg-white rounded-lg shadow-sm overflow-hidden">
-            <div class="px-6 py-4 border-b border-gray-200">
-                <h3 class="text-lg font-medium text-gray-900">
-                    <i class="fas fa-terminal mr-2"></i>
-                    Real-time Logs
-                </h3>
-                <p class="text-sm text-gray-600 mt-1">ข้อมูล logs จะอัปเดตอัตโนมัติ</p>
+        <div class="glass-card slide-up">
+            <div class="p-6 border-b border-gray-200 border-opacity-20">
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <h3 class="text-2xl font-bold mb-2">
+                            <i class="fas fa-terminal mr-3 text-blue-400"></i>
+                            Real-time Logs
+                        </h3>
+                        <p class="opacity-70">ข้อมูล logs จะอัปเดตอัตโนมัติ</p>
+                    </div>
+                </div>
+                
+                <!-- Log Filter -->
+                <div class="log-filter">
+                    <div class="filter-tag active" data-filter="all">
+                        <i class="fas fa-list mr-1"></i> All
+                    </div>
+                    <div class="filter-tag" data-filter="success">
+                        <i class="fas fa-check-circle mr-1"></i> Success
+                    </div>
+                    <div class="filter-tag" data-filter="warning">
+                        <i class="fas fa-exclamation-triangle mr-1"></i> Warning
+                    </div>
+                    <div class="filter-tag" data-filter="error">
+                        <i class="fas fa-times-circle mr-1"></i> Error
+                    </div>
+                    <div class="filter-tag" data-filter="info">
+                        <i class="fas fa-info-circle mr-1"></i> Info
+                    </div>
+                </div>
             </div>
             
             <div class="log-container p-4" id="logs-container">
                 {% if logs %}
                     {% for log in logs %}
-                    <div class="log-entry p-3 mb-2 rounded-r-lg font-mono text-sm" data-log="{{ log }}">
+                    <div class="log-entry" data-log="{{ log }}">
                         {{ log }}
                     </div>
                     {% endfor %}
                 {% else %}
-                    <div class="text-center py-12">
-                        <i class="fas fa-file-alt text-gray-300 text-6xl mb-4"></i>
-                        <h3 class="text-lg font-medium text-gray-900 mb-2">ยังไม่มี Logs</h3>
-                        <p class="text-gray-600">เริ่มการกวาดข้อมูลเพื่อดู logs ที่นี่</p>
-                        <a href="{{ url_for('dashboard') }}" class="mt-4 inline-flex items-center text-blue-600 hover:text-blue-500">
+                    <div class="empty-state">
+                        <i class="fas fa-file-alt text-gray-400"></i>
+                        <h3 class="text-2xl font-bold mb-4 text-gray-400">ยังไม่มี Logs</h3>
+                        <p class="text-lg opacity-70 mb-6">เริ่มการกวาดข้อมูลเพื่อดู logs ที่นี่</p>
+                        <a href="{{ url_for('dashboard') }}" class="btn-modern">
+                            <i class="fas fa-arrow-left mr-2"></i>
                             กลับไป Dashboard
-                            <i class="fas fa-arrow-right ml-2"></i>
                         </a>
                     </div>
                 {% endif %}
@@ -153,15 +700,18 @@
     </div>
 
     <!-- Toast Notification -->
-    <div id="toast" class="fixed top-4 right-4 z-50 hidden">
-        <div class="bg-white border-l-4 border-blue-500 rounded-lg shadow-lg p-4 max-w-sm">
-            <div class="flex">
-                <div class="flex-shrink-0">
-                    <i id="toast-icon" class="fas fa-info-circle text-blue-500"></i>
+    <div id="toast" class="fixed top-4 right-4 z-50 toast">
+        <div class="p-4 max-w-sm">
+            <div class="flex items-center">
+                <div class="flex-shrink-0 mr-3">
+                    <i id="toast-icon" class="fas fa-info-circle text-xl"></i>
                 </div>
-                <div class="ml-3">
-                    <p id="toast-message" class="text-sm text-gray-700"></p>
+                <div class="flex-1">
+                    <p id="toast-message" class="text-sm font-medium">Message</p>
                 </div>
+                <button onclick="hideToast()" class="ml-3 text-gray-400 hover:text-white">
+                    <i class="fas fa-times"></i>
+                </button>
             </div>
         </div>
     </div>
@@ -169,7 +719,26 @@
     <script>
         let autoRefreshInterval;
         let isAutoRefresh = false;
+        let currentFilter = 'all';
 
+        // Theme Management
+        function toggleTheme() {
+            const body = document.body;
+            const themeIcon = document.getElementById('theme-icon');
+            const currentTheme = body.getAttribute('data-theme');
+            
+            if (currentTheme === 'light') {
+                body.setAttribute('data-theme', 'dark');
+                themeIcon.className = 'fas fa-moon';
+                localStorage.setItem('theme', 'dark');
+            } else {
+                body.setAttribute('data-theme', 'light');
+                themeIcon.className = 'fas fa-sun';
+                localStorage.setItem('theme', 'light');
+            }
+        }
+
+        // Toast Management
         function showToast(message, type = 'info') {
             const toast = document.getElementById('toast');
             const icon = document.getElementById('toast-icon');
@@ -177,40 +746,56 @@
             
             messageEl.textContent = message;
             
-            const colors = {
-                'success': 'text-green-500',
-                'error': 'text-red-500',
-                'info': 'text-blue-500',
-                'warning': 'text-yellow-500'
+            const icons = {
+                'success': 'fas fa-check-circle text-green-400',
+                'error': 'fas fa-exclamation-circle text-red-400',
+                'info': 'fas fa-info-circle text-blue-400',
+                'warning': 'fas fa-exclamation-triangle text-yellow-400'
             };
             
-            icon.className = `fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'} ${colors[type] || colors.info}`;
+            icon.className = icons[type] || icons.info;
             
-            toast.classList.remove('hidden');
+            toast.classList.add('show');
             setTimeout(() => {
-                toast.classList.add('hidden');
-            }, 3000);
+                toast.classList.remove('show');
+            }, 5000);
         }
 
+        function hideToast() {
+            document.getElementById('toast').classList.remove('show');
+        }
+
+        // Log Type Detection
         function getLogType(logText) {
-            if (logText.includes('✅') || logText.includes('success') || logText.includes('สำเร็จ')) return 'success';
-            if (logText.includes('❌') || logText.includes('error') || logText.includes('failed') || logText.includes('ผิดพลาด')) return 'error';
-            if (logText.includes('⚠️') || logText.includes('warning') || logText.includes('คำเตือน')) return 'warning';
+            if (logText.includes('✅') || logText.includes('success') || logText.includes('สำเร็จ') || logText.includes('completed')) {
+                return 'success';
+            }
+            if (logText.includes('❌') || logText.includes('error') || logText.includes('failed') || logText.includes('ผิดพลาด')) {
+                return 'error';
+            }
+            if (logText.includes('⚠️') || logText.includes('warning') || logText.includes('คำเตือน')) {
+                return 'warning';
+            }
             return 'info';
         }
 
+        // Update Log Styles and Stats
         function updateLogStyles() {
             const logEntries = document.querySelectorAll('.log-entry');
             let successCount = 0, warningCount = 0, errorCount = 0;
 
-            logEntries.forEach(entry => {
-                const logText = entry.dataset.log;
+            logEntries.forEach((entry, index) => {
+                const logText = entry.dataset.log || entry.textContent;
                 const type = getLogType(logText);
                 
                 // Remove existing classes
-                entry.classList.remove('log-success', 'log-warning', 'log-error', 'log-info');
+                entry.classList.remove('success', 'warning', 'error', 'info');
                 // Add appropriate class
-                entry.classList.add(`log-${type}`);
+                entry.classList.add(type);
+
+                // Add animation delay for smooth appearance
+                entry.style.animationDelay = `${index * 0.05}s`;
+                entry.style.animation = 'slideUp 0.6s ease-out forwards';
 
                 // Count by type
                 if (type === 'success') successCount++;
@@ -218,37 +803,54 @@
                 else if (type === 'error') errorCount++;
             });
 
-            // Update stats
-            document.getElementById('total-logs').textContent = logEntries.length;
-            document.getElementById('success-count').textContent = successCount;
-            document.getElementById('warning-count').textContent = warningCount;
-            document.getElementById('error-count').textContent = errorCount;
+            // Update stats with animation
+            updateStatWithAnimation('total-logs', logEntries.length);
+            updateStatWithAnimation('success-count', successCount);
+            updateStatWithAnimation('warning-count', warningCount);
+            updateStatWithAnimation('error-count', errorCount);
+
+            // Apply current filter
+            applyLogFilter(currentFilter);
         }
 
+        function updateStatWithAnimation(elementId, newValue) {
+            const element = document.getElementById(elementId);
+            if (element) {
+                element.style.transform = 'scale(1.2)';
+                element.textContent = newValue;
+                setTimeout(() => {
+                    element.style.transform = 'scale(1)';
+                }, 200);
+            }
+        }
+
+        // Log Filtering
+        function applyLogFilter(filter) {
+            const logEntries = document.querySelectorAll('.log-entry');
+            
+            logEntries.forEach(entry => {
+                if (filter === 'all' || entry.classList.contains(filter)) {
+                    entry.style.display = 'block';
+                } else {
+                    entry.style.display = 'none';
+                }
+            });
+
+            // Update filter tags
+            document.querySelectorAll('.filter-tag').forEach(tag => {
+                tag.classList.toggle('active', tag.dataset.filter === filter);
+            });
+            
+            currentFilter = filter;
+        }
+
+        // Log Management Functions
         function refreshLogs() {
             fetch('/api/status')
                 .then(response => response.json())
                 .then(data => {
-                    const container = document.getElementById('logs-container');
-                    
-                    if (data.logs && data.logs.length > 0) {
-                        container.innerHTML = data.logs.map(log => 
-                            `<div class="log-entry p-3 mb-2 rounded-r-lg font-mono text-sm" data-log="${log}">${log}</div>`
-                        ).join('');
-                        
-                        // Scroll to bottom
-                        container.scrollTop = container.scrollHeight;
-                        updateLogStyles();
-                        showToast('Logs อัปเดตแล้ว', 'success');
-                    } else {
-                        container.innerHTML = `
-                            <div class="text-center py-12">
-                                <i class="fas fa-file-alt text-gray-300 text-6xl mb-4"></i>
-                                <h3 class="text-lg font-medium text-gray-900 mb-2">ยังไม่มี Logs</h3>
-                                <p class="text-gray-600">เริ่มการกวาดข้อมูลเพื่อดู logs ที่นี่</p>
-                            </div>
-                        `;
-                    }
+                    updateLogsContainer(data.logs || []);
+                    showToast('Logs อัปเดตแล้ว', 'success');
                 })
                 .catch(error => {
                     showToast('ไม่สามารถโหลด logs ได้: ' + error.message, 'error');
@@ -259,18 +861,18 @@
             if (confirm('คุณแน่ใจหรือไม่ว่าต้องการเคลียร์ logs ทั้งหมด?')) {
                 const container = document.getElementById('logs-container');
                 container.innerHTML = `
-                    <div class="text-center py-12">
-                        <i class="fas fa-file-alt text-gray-300 text-6xl mb-4"></i>
-                        <h3 class="text-lg font-medium text-gray-900 mb-2">Logs ถูกเคลียร์แล้ว</h3>
-                        <p class="text-gray-600">logs ใหม่จะปรากฏเมื่อมีกิจกรรมของระบบ</p>
+                    <div class="empty-state">
+                        <i class="fas fa-file-alt text-gray-400"></i>
+                        <h3 class="text-2xl font-bold mb-4 text-gray-400">Logs ถูกเคลียร์แล้ว</h3>
+                        <p class="text-lg opacity-70 mb-6">logs ใหม่จะปรากฏเมื่อมีกิจกรรมของระบบ</p>
                     </div>
                 `;
                 
                 // Reset stats
-                document.getElementById('total-logs').textContent = '0';
-                document.getElementById('success-count').textContent = '0';
-                document.getElementById('warning-count').textContent = '0';
-                document.getElementById('error-count').textContent = '0';
+                updateStatWithAnimation('total-logs', 0);
+                updateStatWithAnimation('success-count', 0);
+                updateStatWithAnimation('warning-count', 0);
+                updateStatWithAnimation('error-count', 0);
                 
                 showToast('เคลียร์ logs แล้ว', 'success');
             }
@@ -278,34 +880,107 @@
 
         function toggleAutoRefresh() {
             const btn = document.getElementById('auto-refresh-btn');
+            const status = document.getElementById('auto-refresh-status');
             
             if (isAutoRefresh) {
                 // Stop auto refresh
                 clearInterval(autoRefreshInterval);
                 isAutoRefresh = false;
                 btn.innerHTML = '<i class="fas fa-play mr-2"></i>Auto Refresh';
-                btn.classList.remove('bg-red-500', 'hover:bg-red-600');
-                btn.classList.add('bg-green-500', 'hover:bg-green-600');
+                btn.classList.remove('btn-danger');
+                btn.classList.add('btn-success');
+                status.textContent = 'Auto Refresh: OFF';
+                status.classList.remove('active');
                 showToast('หยุด Auto Refresh แล้ว', 'info');
             } else {
                 // Start auto refresh
                 autoRefreshInterval = setInterval(refreshLogs, 5000); // Every 5 seconds
                 isAutoRefresh = true;
                 btn.innerHTML = '<i class="fas fa-stop mr-2"></i>Stop Auto';
-                btn.classList.remove('bg-green-500', 'hover:bg-green-600');
-                btn.classList.add('bg-red-500', 'hover:bg-red-600');
+                btn.classList.remove('btn-success');
+                btn.classList.add('btn-danger');
+                status.textContent = 'Auto Refresh: ON (ทุก 5 วินาที)';
+                status.classList.add('active');
                 showToast('เริ่ม Auto Refresh แล้ว (ทุก 5 วินาที)', 'success');
+            }
+        }
+
+        function updateLogsContainer(logs) {
+            const container = document.getElementById('logs-container');
+            
+            if (logs && logs.length > 0) {
+                const logsHtml = logs.map((log, index) => 
+                    `<div class="log-entry" data-log="${log}" style="animation-delay: ${index * 0.05}s">${log}</div>`
+                ).join('');
+                
+                container.innerHTML = logsHtml;
+                
+                // Scroll to bottom
+                container.scrollTop = container.scrollHeight;
+                updateLogStyles();
+            } else {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-file-alt text-gray-400"></i>
+                        <h3 class="text-2xl font-bold mb-4 text-gray-400">ยังไม่มี Logs</h3>
+                        <p class="text-lg opacity-70 mb-6">เริ่มการกวาดข้อมูลเพื่อดู logs ที่นี่</p>
+                        <a href="{{ url_for('dashboard') }}" class="btn-modern">
+                            <i class="fas fa-arrow-left mr-2"></i>กลับไป Dashboard
+                        </a>
+                    </div>
+                `;
             }
         }
 
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            const themeIcon = document.getElementById('theme-icon');
+            
+            document.body.setAttribute('data-theme', savedTheme);
+            themeIcon.className = savedTheme === 'dark' ? 'fas fa-moon' : 'fas fa-sun';
+            
+            // Initialize log styles and stats
             updateLogStyles();
             
             // Auto scroll to bottom
             const container = document.getElementById('logs-container');
             container.scrollTop = container.scrollHeight;
+
+            // Add filter event listeners
+            document.querySelectorAll('.filter-tag').forEach(tag => {
+                tag.addEventListener('click', () => {
+                    applyLogFilter(tag.dataset.filter);
+                });
+            });
+
+            // Add scroll animations
+            addScrollAnimations();
         });
+
+        // Scroll animations
+        function addScrollAnimations() {
+            const observerOptions = {
+                threshold: 0.1,
+                rootMargin: '0px 0px -50px 0px'
+            };
+
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.style.opacity = '1';
+                        entry.target.style.transform = 'translateY(0)';
+                    }
+                });
+            }, observerOptions);
+
+            document.querySelectorAll('.fade-in, .slide-up').forEach((element, index) => {
+                element.style.opacity = '0';
+                element.style.transform = 'translateY(30px)';
+                element.style.transition = `all 0.6s ease-out ${index * 0.1}s`;
+                observer.observe(element);
+            });
+        }
 
         // Cleanup on page unload
         window.addEventListener('beforeunload', function() {
