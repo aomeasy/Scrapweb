@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Viewer - Job Scraper</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .table-scroll {
+            max-height: 600px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <!-- Navigation -->
+    <nav class="gradient-bg shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <i class="fas fa-robot text-white text-2xl mr-3"></i>
+                    <span class="text-white text-xl font-bold">Job Scraper Control Panel</span>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <a href="{{ url_for('dashboard') }}" class="text-white hover:text-gray-200 px-3 py-2 rounded-md">
+                        <i class="fas fa-tachometer-alt mr-2"></i>Dashboard
+                    </a>
+                    <a href="{{ url_for('view_data') }}" class="text-white hover:text-gray-200 px-3 py-2 rounded-md bg-white bg-opacity-20">
+                        <i class="fas fa-table mr-2"></i>ข้อมูล
+                    </a>
+                    <a href="{{ url_for('settings') }}" class="text-white hover:text-gray-200 px-3 py-2 rounded-md">
+                        <i class="fas fa-cog mr-2"></i>ตั้งค่า
+                    </a>
+                    <a href="{{ url_for('view_logs') }}" class="text-white hover:text-gray-200 px-3 py-2 rounded-md">
+                        <i class="fas fa-file-alt mr-2"></i>Logs
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+        <!-- Header -->
+        <div class="mb-6">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-900">ข้อมูลที่กวาดได้</h1>
+                    <p class="text-gray-600 mt-2">
+                        {% if error %}
+                            เกิดข้อผิดพลาดในการโหลดข้อมูล
+                        {% else %}
+                            แสดงข้อมูล {{ data|length }} รายการล่าสุด จากทั้งหมด {{ total_count }} รายการ
+                        {% endif %}
+                    </p>
+                </div>
+                <div class="flex space-x-3 mt-4 sm:mt-0">
+                    {% if sheet_url %}
+                    <a href="{{ sheet_url }}" target="_blank" 
+                       class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg inline-flex items-center transition-colors">
+                        <i class="fas fa-external-link-alt mr-2"></i>
+                        เปิด Google Sheet
+                    </a>
+                    {% endif %}
+                    <button onclick="window.location.reload()" 
+                            class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg inline-flex items-center transition-colors">
+                        <i class="fas fa-sync-alt mr-2"></i>
+                        รีเฟรช
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        {% if error %}
+        <!-- Error Message -->
+        <div class="bg-red-50 border border-red-200 rounded-lg p-6">
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <i class="fas fa-exclamation-circle text-red-400"></i>
+                </div>
+                <div class="ml-3">
+                    <h3 class="text-sm font-medium text-red-800">เกิดข้อผิดพลาด</h3>
+                    <div class="mt-2 text-sm text-red-700">
+                        <p>{{ error }}</p>
+                    </div>
+                    <div class="mt-4">
+                        <a href="{{ url_for('settings') }}" class="text-red-600 hover:text-red-500 underline">
+                            ตรวจสอบการตั้งค่า
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% elif not data %}
+        <!-- No Data -->
+        <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <i class="fas fa-info-circle text-yellow-400"></i>
+                </div>
+                <div class="ml-3">
+                    <h3 class="text-sm font-medium text-yellow-800">ยังไม่มีข้อมูล</h3>
+                    <div class="mt-2 text-sm text-yellow-700">
+                        <p>ระบบยังไม่ได้กวาดข้อมูลมาเก็บใน Google Sheet หรือยังไม่มีข้อมูลใหม่</p>
+                    </div>
+                    <div class="mt-4">
+                        <a href="{{ url_for('dashboard') }}" class="text-yellow-600 hover:text-yellow-500 underline">
+                            กลับไปที่ Dashboard เพื่อเริ่มกวาดข้อมูล
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <!-- Data Stats -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <div class="bg-white rounded-lg shadow-sm p-4">
+                <div class="flex items-center">
+                    <i class="fas fa-list text-blue-500 text-xl mr-3"></i>
+                    <div>
+                        <p class="text-sm text-gray-600">รายการที่แสดง</p>
+                        <p class="text-2xl font-bold text-gray-900">{{ data|length }}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white rounded-lg shadow-sm p-4">
+                <div class="flex items-center">
+                    <i class="fas fa-database text-green-500 text-xl mr-3"></i>
+                    <div>
+                        <p class="text-sm text-gray-600">รายการทั้งหมด</p>
+                        <p class="text-2xl font-bold text-gray-900">{{ total_count }}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white rounded-lg shadow-sm p-4">
+                <div class="flex items-center">
+                    <i class="fas fa-columns text-purple-500 text-xl mr-3"></i>
+                    <div>
+                        <p class="text-sm text-gray-600">จำนวนคอลัมน์</p>
+                        <p class="text-2xl font-bold text-gray-900">{{ data[0].keys()|length if data else 0 }}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white rounded-lg shadow-sm p-4">
+                <div class="flex items-center">
+                    <i class="fas fa-clock text-orange-500 text-xl mr-3"></i>
+                    <div>
+                        <p class="text-sm text-gray-600">อัปเดตล่าสุด</p>
+                        <p class="text-sm font-medium text-gray-900" id="last-updated">เมื่อสักครู่</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Data Table -->
+        <div class="bg-white rounded-lg shadow-sm overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-lg font-medium text-gray-900">
+                    <i class="fas fa-table mr-2"></i>
+                    ข้อมูล Jobs ล่าสุด
+                </h3>
+            </div>
+            
+            <div class="table-scroll">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50 sticky top-0">
+                        <tr>
+                            {% if data %}
+                                {% for column in data[0].keys() %}
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                                    {{ column }}
+                                </th>
+                                {% endfor %}
+                            {% endif %}
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for row in data %}
+                        <tr class="hover:bg-gray-50">
+                            {% for value in row.values() %}
+                            <td class="px-6 py-4 text-sm text-gray-900 max-w-xs truncate" title="{{ value }}">
+                                {% if value and value != '' %}
+                                    {% if value.startswith('http') %}
+                                        <a href="{{ value }}" target="_blank" class="text-blue-600 hover:text-blue-800">
+                                            <i class="fas fa-external-link-alt mr-1"></i>
+                                            {{ value[:50] }}{% if value|length > 50 %}...{% endif %}
+                                        </a>
+                                    {% elif 'job' in value.lower() and value|length < 20 %}
+                                        <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium">
+                                            {{ value }}
+                                        </span>
+                                    {% elif 'complete' in value.lower() %}
+                                        <span class="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-medium">
+                                            {{ value }}
+                                        </span>
+                                    {% elif 'pending' in value.lower() or 'progress' in value.lower() %}
+                                        <span class="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-xs font-medium">
+                                            {{ value }}
+                                        </span>
+                                    {% elif 'urgent' in value.lower() %}
+                                        <span class="bg-red-100 text-red-800 px-2 py-1 rounded-full text-xs font-medium">
+                                            {{ value }}
+                                        </span>
+                                    {% else %}
+                                        {{ value }}
+                                    {% endif %}
+                                {% else %}
+                                    <span class="text-gray-400">-</span>
+                                {% endif %}
+                            </td>
+                            {% endfor %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Pagination Info -->
+        {% if total_count > data|length %}
+        <div class="mt-4 text-center">
+            <p class="text-sm text-gray-600">
+                แสดง {{ data|length }} รายการล่าสุด จากทั้งหมด {{ total_count }} รายการ
+            </p>
+            {% if sheet_url %}
+            <a href="{{ sheet_url }}" target="_blank" class="mt-2 inline-flex items-center text-blue-600 hover:text-blue-500">
+                ดูข้อมูลทั้งหมดใน Google Sheet
+                <i class="fas fa-external-link-alt ml-1"></i>
+            </a>
+            {% endif %}
+        </div>
+        {% endif %}
+        {% endif %}
+    </div>
+
+    <script>
+        // Update last updated time
+        document.getElementById('last-updated').textContent = new Date().toLocaleString('th-TH');
+        
+        // Auto refresh every 5 minutes
+        setTimeout(() => {
+            window.location.reload();
+        }, 300000); // 5 minutes
+    </script>
+</body>
+</html>
