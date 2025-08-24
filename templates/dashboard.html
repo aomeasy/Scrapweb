@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Job Scraper Dashboard</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/3.4.1/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #6366f1;
+            --secondary-color: #8b5cf6;
+            --accent-color: #06b6d4;
+            --glass-bg: rgba(255, 255, 255, 0.15);
+            --glass-border: rgba(255, 255, 255, 0.2);
+            --text-primary: #1f2937;
+            --text-secondary: #6b7280;
+        }
+
+        [data-theme="dark"] {
+            --glass-bg: rgba(17, 24, 39, 0.4);
+            --glass-border: rgba(75, 85, 99, 0.3);
+            --text-primary: #f9fafb;
+            --text-secondary: #d1d5db;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            min-height: 100vh;
+            color: var(--text-primary);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            transition: all 0.3s ease;
+        }
+
+        [data-theme="dark"] body {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+        }
+
+        .glass-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            box-shadow: 0 25px 45px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .glass-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 35px 65px rgba(0, 0, 0, 0.15);
+            border-color: var(--primary-color);
+        }
+
+        .glass-nav {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        [data-theme="dark"] .glass-nav {
+            background: rgba(17, 24, 39, 0.3);
+            border-bottom: 1px solid rgba(75, 85, 99, 0.2);
+        }
+
+        .nav-item {
+            position: relative;
+            overflow: hidden;
+            border-radius: 12px;
+            transition: all 0.3s ease;
+        }
+
+        .nav-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+            animation: pulse 2s infinite;
+            box-shadow: 0 0 15px currentColor;
+        }
+
+        .status-dot.active {
+            background: #10b981;
+            color: #10b981;
+        }
+
+        .status-dot.inactive {
+            background: #6b7280;
+            color: #6b7280;
+            animation: none;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(1.1); }
+        }
+
+        .btn-modern {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            border: none;
+            border-radius: 16px;
+            padding: 12px 24px;
+            color: white;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 8px 25px rgba(99, 102, 241, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-modern:hover {
+            transform: translateY(-2px) scale(1.02);
+            box-shadow: 0 15px 35px rgba(99, 102, 241, 0.4);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #6b7280, #4b5563);
+            box-shadow: 0 8px 25px rgba(107, 114, 128, 0.3);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #10b981, #059669);
+            box-shadow: 0 8px 25px rgba(16, 185, 129, 0.3);
+        }
+
+        .progress-bar {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .progress-fill {
+            background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
+            height: 8px;
+            border-radius: 10px;
+            transition: width 0.3s ease;
+        }
+
+        .log-entry {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 12px 16px;
+            margin-bottom: 8px;
+            font-family: monospace;
+            font-size: 13px;
+            line-height: 1.5;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .log-entry::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 4px;
+            height: 100%;
+            background: #6b7280;
+        }
+
+        .log-entry.success::before { background: #10b981; }
+        .log-entry.error::before { background: #ef4444; }
+        .log-entry.warning::before { background: #f59e0b; }
+        .log-entry.info::before { background: #3b82f6; }
+
+        .theme-toggle {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 50px;
+            width: 80px;
+            height: 40px;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .theme-toggle-slider {
+            position: absolute;
+            top: 4px;
+            left: 4px;
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            border-radius: 50%;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 14px;
+        }
+
+        [data-theme="dark"] .theme-toggle-slider {
+            transform: translateX(40px);
+        }
+
+        .toast {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+            transform: translateX(400px);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .toast.show {
+            transform: translateX(0);
+        }
+
+        .loading-spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body data-theme="light">
+    <!-- Navigation -->
+    <nav class="glass-nav sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center">
+                    <div class="text-white text-2xl mr-3">
+                        <i class="fas fa-robot"></i>
+                    </div>
+                    <span class="text-white text-xl font-bold">Job Scraper Control Panel</span>
+                </div>
+                
+                <div class="flex items-center space-x-2">
+                    <a href="{{ url_for('dashboard') }}" class="nav-item text-white hover:text-gray-200 px-4 py-2 rounded-xl">
+                        <i class="fas fa-tachometer-alt mr-2"></i>Dashboard
+                    </a>
+                    <a href="{{ url_for('view_data') }}" class="nav-item text-white hover:text-gray-200 px-4 py-2 rounded-xl">
+                        <i class="fas fa-table mr-2"></i>ข้อมูล
+                    </a>
+                    <a href="{{ url_for('settings') }}" class="nav-item text-white hover:text-gray-200 px-4 py-2 rounded-xl">
+                        <i class="fas fa-cog mr-2"></i>ตั้งค่า
+                    </a>
+                    <a href="{{ url_for('view_logs') }}" class="nav-item text-white hover:text-gray-200 px-4 py-2 rounded-xl">
+                        <i class="fas fa-file-alt mr-2"></i>Logs
+                    </a>
+                    
+                    <div class="theme-toggle ml-4" onclick="toggleTheme()">
+                        <div class="theme-toggle-slider">
+                            <i class="fas fa-sun" id="theme-icon"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+        <!-- Status Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
+            <!-- Status Card -->
+            <div class="glass-card p-8">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center">
+                        <span class="status-dot {% if status.is_running %}active{% else %}inactive{% endif %} mr-4"></span>
+                        <h3 class="text-xl font-bold">สถานะระบบ</h3>
+                    </div>
+                    <i class="fas fa-server text-2xl opacity-20"></i>
+                </div>
+                <p class="text-lg font-medium" id="status-text">
+                    {% if status.is_running %}
+                        <span class="text-green-400">🔄 กำลังดำเนินการ...</span>
+                    {% else %}
+                        <span class="text-gray-400">⏸️ พร้อมใช้งาน</span>
+                    {% endif %}
+                </p>
+            </div>
+
+            <!-- Last Run Card -->
+            <div class="glass-card p-8">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-xl font-bold">รันล่าสุด</h3>
+                    <i class="fas fa-clock text-2xl opacity-20"></i>
+                </div>
+                <p class="text-lg font-medium opacity-80" id="last-run">
+                    {% if status.last_run %}
+                        {{ status.last_run }}
+                    {% else %}
+                        ยังไม่เคยรัน
+                    {% endif %}
+                </p>
+            </div>
+
+            <!-- Result Card -->
+            <div class="glass-card p-8">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-xl font-bold">ผลลัพธ์ล่าสุด</h3>
+                    <i class="fas fa-chart-line text-2xl opacity-20"></i>
+                </div>
+                <p class="text-lg font-medium" id="last-result">
+                    {% if status.last_result %}
+                        {% if "สำเร็จ" in status.last_result %}
+                            <span class="text-green-400">✅ {{ status.last_result }}</span>
+                        {% else %}
+                            <span class="text-red-400">❌ {{ status.last_result }}</span>
+                        {% endif %}
+                    {% else %}
+                        <span class="opacity-60">-</span>
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+
+        <!-- Control Panel -->
+        <div class="glass-card p-8 mb-12">
+            <div class="flex items-center justify-between mb-8">
+                <div>
+                    <h2 class="text-3xl font-bold mb-2">การควบคุมระบบ</h2>
+                    <p class="opacity-70">จัดการการทำงานของระบบกวาดข้อมูล</p>
+                </div>
+                <div class="text-6xl opacity-10">
+                    <i class="fas fa-robot"></i>
+                </div>
+            </div>
+            
+            <div class="flex flex-col sm:flex-row gap-4 mb-8">
+                <button id="start-btn" onclick="startScraping()" class="btn-modern flex-1">
+                    <i class="fas fa-rocket mr-2"></i>
+                    เริ่มกวาดข้อมูล
+                </button>
+                
+                <button onclick="testConnections()" class="btn-modern btn-success flex-1">
+                    <i class="fas fa-plug mr-2"></i>
+                    ทดสอบการเชื่อมต่อ
+                </button>
+                
+                <button onclick="refreshStatus()" class="btn-modern btn-secondary flex-1">
+                    <i class="fas fa-sync-alt mr-2"></i>
+                    รีเฟรช
+                </button>
+            </div>
+
+            <!-- Progress Bar -->
+            <div id="progress-container" class="hidden">
+                <div class="mb-4">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-sm font-medium">ความคืบหน้า</span>
+                        <span class="text-sm opacity-70" id="progress-text">{{ status.progress }}</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 100%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Logs -->
+        <div class="glass-card p-8">
+            <div class="flex items-center justify-between mb-6">
+                <div>
+                    <h2 class="text-3xl font-bold mb-2">Logs ล่าสุด</h2>
+                    <p class="opacity-70">ติดตามกิจกรรมของระบบแบบเรียลไทม์</p>
+                </div>
+                <a href="{{ url_for('view_logs') }}" class="btn-modern btn-secondary">
+                    ดูทั้งหมด <i class="fas fa-arrow-right ml-2"></i>
+                </a>
+            </div>
+            
+            <div id="logs-container" class="max-h-96 overflow-y-auto space-y-2">
+                {% if status.logs %}
+                    {% for log in status.logs[-10:] %}
+                        <div class="log-entry {% if 'success' in log.lower() or 'สำเร็จ' in log %}success{% elif 'error' in log.lower() or 'ข้อผิดพลาด' in log %}error{% elif 'warning' in log.lower() or 'คำเตือน' in log %}warning{% else %}info{% endif %}">
+                            {{ log }}
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-center py-12 opacity-60">
+                        <i class="fas fa-file-alt text-4xl mb-4 opacity-30"></i>
+                        <p class="text-lg">ยังไม่มี logs</p>
+                        <p class="text-sm mt-2">เริ่มการกวาดข้อมูลเพื่อดู logs ที่นี่</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed top-4 right-4 z-50 toast">
+        <div class="p-4 max-w-sm">
+            <div class="flex items-center">
+                <div class="flex-shrink-0 mr-3">
+                    <i id="toast-icon" class="fas fa-info-circle text-xl"></i>
+                </div>
+                <div class="flex-1">
+                    <p id="toast-message" class="text-sm font-medium">Message</p>
+                </div>
+                <button onclick="hideToast()" class="ml-3 text-gray-400 hover:text-white">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let statusInterval;
+        
+        function toggleTheme() {
+            const body = document.body;
+            const themeIcon = document.getElementById('theme-icon');
+            const currentTheme = body.getAttribute('data-theme');
+            
+            if (currentTheme === 'light') {
+                body.setAttribute('data-theme', 'dark');
+                themeIcon.className = 'fas fa-moon';
+            } else {
+                body.setAttribute('data-theme', 'light');
+                themeIcon.className = 'fas fa-sun';
+            }
+        }
+
+        function showToast(message, type = 'info') {
+            const toast = document.getElementById('toast');
+            const icon = document.getElementById('toast-icon');
+            const messageEl = document.getElementById('toast-message');
+            
+            messageEl.textContent = message;
+            
+            const icons = {
+                'success': 'fas fa-check-circle text-green-400',
+                'error': 'fas fa-exclamation-circle text-red-400',
+                'info': 'fas fa-info-circle text-blue-400',
+                'warning': 'fas fa-exclamation-triangle text-yellow-400'
+            };
+            
+            icon.className = icons[type] || icons.info;
+            
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 5000);
+        }
+
+        function hideToast() {
+            document.getElementById('toast').classList.remove('show');
+        }
+
+        function startScraping() {
+            const btn = document.getElementById('start-btn');
+            btn.disabled = true;
+            btn.innerHTML = '<div class="loading-spinner mr-2"></div>กำลังเริ่มต้น...';
+
+            fetch('/api/start-scraping', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showToast(data.message, 'success');
+                    startStatusPolling();
+                } else {
+                    showToast(data.message, 'error');
+                    resetStartButton();
+                }
+            })
+            .catch(error => {
+                showToast('เกิดข้อผิดพลาด: ' + error.message, 'error');
+                resetStartButton();
+            });
+        }
+
+        function resetStartButton() {
+            const btn = document.getElementById('start-btn');
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-rocket mr-2"></i>เริ่มกวาดข้อมูล';
+        }
+
+        function testConnections() {
+            showToast('กำลังทดสอบการเชื่อมต่อ...', 'info');
+            
+            fetch('/api/test-connection', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showToast('การเชื่อมต่อปกติ', 'success');
+                } else {
+                    showToast('การทดสอบล้มเหลว: ' + data.message, 'error');
+                }
+            })
+            .catch(error => {
+                showToast('เกิดข้อผิดพลาดในการทดสอบ: ' + error.message, 'error');
+            });
+        }
+
+        function refreshStatus() {
+            updateStatus();
+            showToast('รีเฟรชสถานะแล้ว', 'success');
+        }
+
+        function startStatusPolling() {
+            if (statusInterval) clearInterval(statusInterval);
+            statusInterval = setInterval(updateStatus, 3000);
+            document.getElementById('progress-container').classList.remove('hidden');
+        }
+
+        function stopStatusPolling() {
+            if (statusInterval) {
+                clearInterval(statusInterval);
+                statusInterval = null;
+            }
+            document.getElementById('progress-container').classList.add('hidden');
+            resetStartButton();
+        }
+
+        function updateStatus() {
+            fetch('/api/status')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('status-text').innerHTML = 
+                        data.is_running ? 
+                        '<span class="text-green-400">🔄 กำลังดำเนินการ...</span>' : 
+                        '<span class="text-gray-400">⏸️ พร้อมใช้งาน</span>';
+                    
+                    document.getElementById('last-run').textContent = data.last_run || 'ยังไม่เคยรัน';
+                    
+                    if (data.last_result) {
+                        const resultText = data.last_result.includes('สำเร็จ') ?
+                            `<span class="text-green-400">✅ ${data.last_result}</span>` :
+                            `<span class="text-red-400">❌ ${data.last_result}</span>`;
+                        document.getElementById('last-result').innerHTML = resultText;
+                    }
+                    
+                    document.getElementById('progress-text').textContent = data.progress || '';
+                    
+                    const statusDot = document.querySelector('.status-dot');
+                    statusDot.className = `status-dot ${data.is_running ? 'active' : 'inactive'}`;
+                    
+                    if (data.logs && data.logs.length > 0) {
+                        updateLogsContainer(data.logs.slice(-10));
+                    }
+                    
+                    if (!data.is_running && statusInterval) {
+                        stopStatusPolling();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error updating status:', error);
+                });
+        }
+
+        function updateLogsContainer(logs) {
+            const container = document.getElementById('logs-container');
+            if (!logs || logs.length === 0) return;
+            
+            const newLogsHtml = logs.map(log => {
+                let logType = 'info';
+                if (log.toLowerCase().includes('success') || log.includes('สำเร็จ') || log.includes('✅')) {
+                    logType = 'success';
+                } else if (log.toLowerCase().includes('error') || log.includes('ข้อผิดพลาด') || log.includes('❌')) {
+                    logType = 'error';
+                } else if (log.toLowerCase().includes('warning') || log.includes('คำเตือน') || log.includes('⚠️')) {
+                    logType = 'warning';
+                }
+                
+                return `<div class="log-entry ${logType}">${log}</div>`;
+            }).join('');
+            
+            container.innerHTML = newLogsHtml;
+            container.scrollTop = container.scrollHeight;
+        }
+
+        // Initialize
+        updateStatus();
+        setInterval(() => {
+            if (!statusInterval) {
+                updateStatus();
+            }
+        }, 30000);
+    </script>
+</body>
+</html>
