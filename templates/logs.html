@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Logs - Job Scraper</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .log-container {
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+        .log-entry {
+            border-left: 3px solid #e5e7eb;
+            transition: all 0.2s ease;
+        }
+        .log-entry:hover {
+            border-left-color: #3b82f6;
+            background-color: #f8fafc;
+        }
+        .log-success { border-left-color: #10b981; }
+        .log-warning { border-left-color: #f59e0b; }
+        .log-error { border-left-color: #ef4444; }
+        .log-info { border-left-color: #3b82f6; }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <!-- Navigation -->
+    <nav class="gradient-bg shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <i class="fas fa-robot text-white text-2xl mr-3"></i>
+                    <span class="text-white text-xl font-bold">Job Scraper Control Panel</span>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <a href="{{ url_for('dashboard') }}" class="text-white hover:text-gray-200 px-3 py-2 rounded-md">
+                        <i class="fas fa-tachometer-alt mr-2"></i>Dashboard
+                    </a>
+                    <a href="{{ url_for('view_data') }}" class="text-white hover:text-gray-200 px-3 py-2 rounded-md">
+                        <i class="fas fa-table mr-2"></i>ข้อมูล
+                    </a>
+                    <a href="{{ url_for('settings') }}" class="text-white hover:text-gray-200 px-3 py-2 rounded-md">
+                        <i class="fas fa-cog mr-2"></i>ตั้งค่า
+                    </a>
+                    <a href="{{ url_for('view_logs') }}" class="text-white hover:text-gray-200 px-3 py-2 rounded-md bg-white bg-opacity-20">
+                        <i class="fas fa-file-alt mr-2"></i>Logs
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="max-w-6xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+        <!-- Header -->
+        <div class="mb-6">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-900">System Logs</h1>
+                    <p class="text-gray-600 mt-2">ติดตามกิจกรรมและสถานะของระบบ</p>
+                </div>
+                <div class="flex space-x-3 mt-4 sm:mt-0">
+                    <button onclick="clearLogs()" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg inline-flex items-center transition-colors">
+                        <i class="fas fa-trash mr-2"></i>
+                        เคลียร์ Logs
+                    </button>
+                    <button onclick="refreshLogs()" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg inline-flex items-center transition-colors">
+                        <i class="fas fa-sync-alt mr-2"></i>
+                        รีเฟรช
+                    </button>
+                    <button onclick="toggleAutoRefresh()" id="auto-refresh-btn" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg inline-flex items-center transition-colors">
+                        <i class="fas fa-play mr-2"></i>
+                        Auto Refresh
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <div class="bg-white rounded-lg shadow-sm p-4">
+                <div class="flex items-center">
+                    <i class="fas fa-list text-blue-500 text-xl mr-3"></i>
+                    <div>
+                        <p class="text-sm text-gray-600">ทั้งหมด</p>
+                        <p class="text-2xl font-bold text-gray-900" id="total-logs">{{ logs|length }}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white rounded-lg shadow-sm p-4">
+                <div class="flex items-center">
+                    <i class="fas fa-check-circle text-green-500 text-xl mr-3"></i>
+                    <div>
+                        <p class="text-sm text-gray-600">สำเร็จ</p>
+                        <p class="text-2xl font-bold text-gray-900" id="success-count">0</p>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white rounded-lg shadow-sm p-4">
+                <div class="flex items-center">
+                    <i class="fas fa-exclamation-triangle text-yellow-500 text-xl mr-3"></i>
+                    <div>
+                        <p class="text-sm text-gray-600">คำเตือน</p>
+                        <p class="text-2xl font-bold text-gray-900" id="warning-count">0</p>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white rounded-lg shadow-sm p-4">
+                <div class="flex items-center">
+                    <i class="fas fa-times-circle text-red-500 text-xl mr-3"></i>
+                    <div>
+                        <p class="text-sm text-gray-600">ข้อผิดพลาด</p>
+                        <p class="text-2xl font-bold text-gray-900" id="error-count">0</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Logs Container -->
+        <div class="bg-white rounded-lg shadow-sm overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-lg font-medium text-gray-900">
+                    <i class="fas fa-terminal mr-2"></i>
+                    Real-time Logs
+                </h3>
+                <p class="text-sm text-gray-600 mt-1">ข้อมูล logs จะอัปเดตอัตโนมัติ</p>
+            </div>
+            
+            <div class="log-container p-4" id="logs-container">
+                {% if logs %}
+                    {% for log in logs %}
+                    <div class="log-entry p-3 mb-2 rounded-r-lg font-mono text-sm" data-log="{{ log }}">
+                        {{ log }}
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-center py-12">
+                        <i class="fas fa-file-alt text-gray-300 text-6xl mb-4"></i>
+                        <h3 class="text-lg font-medium text-gray-900 mb-2">ยังไม่มี Logs</h3>
+                        <p class="text-gray-600">เริ่มการกวาดข้อมูลเพื่อดู logs ที่นี่</p>
+                        <a href="{{ url_for('dashboard') }}" class="mt-4 inline-flex items-center text-blue-600 hover:text-blue-500">
+                            กลับไป Dashboard
+                            <i class="fas fa-arrow-right ml-2"></i>
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed top-4 right-4 z-50 hidden">
+        <div class="bg-white border-l-4 border-blue-500 rounded-lg shadow-lg p-4 max-w-sm">
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <i id="toast-icon" class="fas fa-info-circle text-blue-500"></i>
+                </div>
+                <div class="ml-3">
+                    <p id="toast-message" class="text-sm text-gray-700"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let autoRefreshInterval;
+        let isAutoRefresh = false;
+
+        function showToast(message, type = 'info') {
+            const toast = document.getElementById('toast');
+            const icon = document.getElementById('toast-icon');
+            const messageEl = document.getElementById('toast-message');
+            
+            messageEl.textContent = message;
+            
+            const colors = {
+                'success': 'text-green-500',
+                'error': 'text-red-500',
+                'info': 'text-blue-500',
+                'warning': 'text-yellow-500'
+            };
+            
+            icon.className = `fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'} ${colors[type] || colors.info}`;
+            
+            toast.classList.remove('hidden');
+            setTimeout(() => {
+                toast.classList.add('hidden');
+            }, 3000);
+        }
+
+        function getLogType(logText) {
+            if (logText.includes('✅') || logText.includes('success') || logText.includes('สำเร็จ')) return 'success';
+            if (logText.includes('❌') || logText.includes('error') || logText.includes('failed') || logText.includes('ผิดพลาด')) return 'error';
+            if (logText.includes('⚠️') || logText.includes('warning') || logText.includes('คำเตือน')) return 'warning';
+            return 'info';
+        }
+
+        function updateLogStyles() {
+            const logEntries = document.querySelectorAll('.log-entry');
+            let successCount = 0, warningCount = 0, errorCount = 0;
+
+            logEntries.forEach(entry => {
+                const logText = entry.dataset.log;
+                const type = getLogType(logText);
+                
+                // Remove existing classes
+                entry.classList.remove('log-success', 'log-warning', 'log-error', 'log-info');
+                // Add appropriate class
+                entry.classList.add(`log-${type}`);
+
+                // Count by type
+                if (type === 'success') successCount++;
+                else if (type === 'warning') warningCount++;
+                else if (type === 'error') errorCount++;
+            });
+
+            // Update stats
+            document.getElementById('total-logs').textContent = logEntries.length;
+            document.getElementById('success-count').textContent = successCount;
+            document.getElementById('warning-count').textContent = warningCount;
+            document.getElementById('error-count').textContent = errorCount;
+        }
+
+        function refreshLogs() {
+            fetch('/api/status')
+                .then(response => response.json())
+                .then(data => {
+                    const container = document.getElementById('logs-container');
+                    
+                    if (data.logs && data.logs.length > 0) {
+                        container.innerHTML = data.logs.map(log => 
+                            `<div class="log-entry p-3 mb-2 rounded-r-lg font-mono text-sm" data-log="${log}">${log}</div>`
+                        ).join('');
+                        
+                        // Scroll to bottom
+                        container.scrollTop = container.scrollHeight;
+                        updateLogStyles();
+                        showToast('Logs อัปเดตแล้ว', 'success');
+                    } else {
+                        container.innerHTML = `
+                            <div class="text-center py-12">
+                                <i class="fas fa-file-alt text-gray-300 text-6xl mb-4"></i>
+                                <h3 class="text-lg font-medium text-gray-900 mb-2">ยังไม่มี Logs</h3>
+                                <p class="text-gray-600">เริ่มการกวาดข้อมูลเพื่อดู logs ที่นี่</p>
+                            </div>
+                        `;
+                    }
+                })
+                .catch(error => {
+                    showToast('ไม่สามารถโหลด logs ได้: ' + error.message, 'error');
+                });
+        }
+
+        function clearLogs() {
+            if (confirm('คุณแน่ใจหรือไม่ว่าต้องการเคลียร์ logs ทั้งหมด?')) {
+                const container = document.getElementById('logs-container');
+                container.innerHTML = `
+                    <div class="text-center py-12">
+                        <i class="fas fa-file-alt text-gray-300 text-6xl mb-4"></i>
+                        <h3 class="text-lg font-medium text-gray-900 mb-2">Logs ถูกเคลียร์แล้ว</h3>
+                        <p class="text-gray-600">logs ใหม่จะปรากฏเมื่อมีกิจกรรมของระบบ</p>
+                    </div>
+                `;
+                
+                // Reset stats
+                document.getElementById('total-logs').textContent = '0';
+                document.getElementById('success-count').textContent = '0';
+                document.getElementById('warning-count').textContent = '0';
+                document.getElementById('error-count').textContent = '0';
+                
+                showToast('เคลียร์ logs แล้ว', 'success');
+            }
+        }
+
+        function toggleAutoRefresh() {
+            const btn = document.getElementById('auto-refresh-btn');
+            
+            if (isAutoRefresh) {
+                // Stop auto refresh
+                clearInterval(autoRefreshInterval);
+                isAutoRefresh = false;
+                btn.innerHTML = '<i class="fas fa-play mr-2"></i>Auto Refresh';
+                btn.classList.remove('bg-red-500', 'hover:bg-red-600');
+                btn.classList.add('bg-green-500', 'hover:bg-green-600');
+                showToast('หยุด Auto Refresh แล้ว', 'info');
+            } else {
+                // Start auto refresh
+                autoRefreshInterval = setInterval(refreshLogs, 5000); // Every 5 seconds
+                isAutoRefresh = true;
+                btn.innerHTML = '<i class="fas fa-stop mr-2"></i>Stop Auto';
+                btn.classList.remove('bg-green-500', 'hover:bg-green-600');
+                btn.classList.add('bg-red-500', 'hover:bg-red-600');
+                showToast('เริ่ม Auto Refresh แล้ว (ทุก 5 วินาที)', 'success');
+            }
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            updateLogStyles();
+            
+            // Auto scroll to bottom
+            const container = document.getElementById('logs-container');
+            container.scrollTop = container.scrollHeight;
+        });
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', function() {
+            if (autoRefreshInterval) {
+                clearInterval(autoRefreshInterval);
+            }
+        });
+    </script>
+</body>
+</html>

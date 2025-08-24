@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Job Scraper Dashboard</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .glass-effect {
+            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .pulse-dot {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <!-- Navigation -->
+    <nav class="gradient-bg shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <i class="fas fa-robot text-white text-2xl mr-3"></i>
+                    <span class="text-white text-xl font-bold">Job Scraper Control Panel</span>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <a href="{{ url_for('dashboard') }}" class="text-white hover:text-gray-200 px-3 py-2 rounded-md">
+                        <i class="fas fa-tachometer-alt mr-2"></i>Dashboard
+                    </a>
+                    <a href="{{ url_for('view_data') }}" class="text-white hover:text-gray-200 px-3 py-2 rounded-md">
+                        <i class="fas fa-table mr-2"></i>ข้อมูล
+                    </a>
+                    <a href="{{ url_for('settings') }}" class="text-white hover:text-gray-200 px-3 py-2 rounded-md">
+                        <i class="fas fa-cog mr-2"></i>ตั้งค่า
+                    </a>
+                    <a href="{{ url_for('view_logs') }}" class="text-white hover:text-gray-200 px-3 py-2 rounded-md">
+                        <i class="fas fa-file-alt mr-2"></i>Logs
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+        <!-- Status Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <!-- Status Card -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        {% if status.is_running %}
+                            <div class="w-4 h-4 bg-green-400 rounded-full pulse-dot"></div>
+                        {% else %}
+                            <div class="w-4 h-4 bg-gray-400 rounded-full"></div>
+                        {% endif %}
+                    </div>
+                    <div class="ml-4">
+                        <h3 class="text-lg font-medium text-gray-900">สถานะ</h3>
+                        <p class="text-sm text-gray-600" id="status-text">
+                            {% if status.is_running %}
+                                🔄 กำลังดำเนินการ...
+                            {% else %}
+                                ⏸️ พร้อมใช้งาน
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Last Run Card -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-clock text-blue-500 text-xl"></i>
+                    </div>
+                    <div class="ml-4">
+                        <h3 class="text-lg font-medium text-gray-900">รันล่าสุด</h3>
+                        <p class="text-sm text-gray-600" id="last-run">
+                            {% if status.last_run %}
+                                {{ status.last_run }}
+                            {% else %}
+                                ยังไม่เคยรัน
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Result Card -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        {% if status.last_result %}
+                            {% if "สำเร็จ" in status.last_result %}
+                                <i class="fas fa-check-circle text-green-500 text-xl"></i>
+                            {% else %}
+                                <i class="fas fa-exclamation-circle text-red-500 text-xl"></i>
+                            {% endif %}
+                        {% else %}
+                            <i class="fas fa-question-circle text-gray-400 text-xl"></i>
+                        {% endif %}
+                    </div>
+                    <div class="ml-4">
+                        <h3 class="text-lg font-medium text-gray-900">ผลลัพธ์ล่าสุด</h3>
+                        <p class="text-sm text-gray-600" id="last-result">
+                            {% if status.last_result %}
+                                {{ status.last_result }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Control Panel -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <h2 class="text-2xl font-bold text-gray-900 mb-4">
+                <i class="fas fa-play-circle mr-2 text-blue-500"></i>การควบคุม
+            </h2>
+            
+            <div class="flex flex-col sm:flex-row gap-4 mb-6">
+                <button id="start-btn" onclick="startScraping()" 
+                        class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-6 rounded-lg transition duration-300 ease-in-out transform hover:scale-105 flex items-center justify-center">
+                    <i class="fas fa-rocket mr-2"></i>
+                    เริ่มกวาดข้อมูล
+                </button>
+                
+                <button onclick="testConnections()" 
+                        class="bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-6 rounded-lg transition duration-300 ease-in-out transform hover:scale-105 flex items-center justify-center">
+                    <i class="fas fa-plug mr-2"></i>
+                    ทดสอบการเชื่อมต่อ
+                </button>
+                
+                <button onclick="refreshStatus()" 
+                        class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-3 px-6 rounded-lg transition duration-300 ease-in-out transform hover:scale-105 flex items-center justify-center">
+                    <i class="fas fa-sync-alt mr-2"></i>
+                    รีเฟรช
+                </button>
+            </div>
+
+            <!-- Progress Bar -->
+            <div id="progress-container" class="hidden mb-4">
+                <div class="bg-gray-200 rounded-full h-2 mb-2">
+                    <div class="bg-blue-500 h-2 rounded-full animate-pulse" style="width: 100%"></div>
+                </div>
+                <p class="text-sm text-gray-600" id="progress-text">{{ status.progress }}</p>
+            </div>
+        </div>
+
+        <!-- Recent Logs -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-2xl font-bold text-gray-900 mb-4">
+                <i class="fas fa-list mr-2 text-purple-500"></i>Logs ล่าสุด
+            </h2>
+            <div id="logs-container" class="bg-gray-50 rounded-lg p-4 max-h-96 overflow-y-auto">
+                {% if status.logs %}
+                    {% for log in status.logs[-10:] %}
+                        <div class="text-sm text-gray-700 font-mono mb-1">{{ log }}</div>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-sm text-gray-500">ยังไม่มี logs</div>
+                {% endif %}
+            </div>
+            <div class="mt-4 text-right">
+                <a href="{{ url_for('view_logs') }}" class="text-blue-500 hover:text-blue-700 text-sm">
+                    ดู logs ทั้งหมด <i class="fas fa-arrow-right ml-1"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed top-4 right-4 z-50 hidden">
+        <div class="bg-white border-l-4 border-blue-500 rounded-lg shadow-lg p-4 max-w-sm">
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <i id="toast-icon" class="fas fa-info-circle text-blue-500"></i>
+                </div>
+                <div class="ml-3">
+                    <p id="toast-message" class="text-sm text-gray-700"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let statusInterval;
+
+        function showToast(message, type = 'info') {
+            const toast = document.getElementById('toast');
+            const icon = document.getElementById('toast-icon');
+            const messageEl = document.getElementById('toast-message');
+            
+            messageEl.textContent = message;
+            
+            // Set icon and color based on type
+            const colors = {
+                'success': 'text-green-500',
+                'error': 'text-red-500',
+                'info': 'text-blue-500',
+                'warning': 'text-yellow-500'
+            };
+            
+            icon.className = `fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'} ${colors[type] || colors.info}`;
+            
+            toast.classList.remove('hidden');
+            setTimeout(() => {
+                toast.classList.add('hidden');
+            }, 5000);
+        }
+
+        function startScraping() {
+            const btn = document.getElementById('start-btn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>กำลังเริ่มต้น...';
+
+            fetch('/api/start-scraping', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showToast(data.message, 'success');
+                    startStatusPolling();
+                } else {
+                    showToast(data.message, 'error');
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-rocket mr-2"></i>เริ่มกวาดข้อมูล';
+                }
+            })
+            .catch(error => {
+                showToast('เกิดข้อผิดพลาด: ' + error.message, 'error');
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-rocket mr-2"></i>เริ่มกวาดข้อมูล';
+            });
+        }
+
+        function testConnections() {
+            showToast('กำลังทดสอบการเชื่อมต่อ...', 'info');
+            
+            fetch('/api/test-connection', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    let messages = [];
+                    Object.entries(data.results).forEach(([service, result]) => {
+                        messages.push(`${service}: ${result.status === 'success' ? '✅' : '❌'} ${result.message}`);
+                    });
+                    showToast(messages.join('\n'), 'info');
+                } else {
+                    showToast('การทดสอบล้มเหลว: ' + data.message, 'error');
+                }
+            })
+            .catch(error => {
+                showToast('เกิดข้อผิดพลาดในการทดสอบ: ' + error.message, 'error');
+            });
+        }
+
+        function refreshStatus() {
+            updateStatus();
+            showToast('รีเฟรชสถานะแล้ว', 'success');
+        }
+
+        function startStatusPolling() {
+            if (statusInterval) clearInterval(statusInterval);
+            statusInterval = setInterval(updateStatus, 3000);
+            document.getElementById('progress-container').classList.remove('hidden');
+        }
+
+        function stopStatusPolling() {
+            if (statusInterval) {
+                clearInterval(statusInterval);
+                statusInterval = null;
+            }
+            document.getElementById('progress-container').classList.add('hidden');
+            const btn = document.getElementById('start-btn');
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-rocket mr-2"></i>เริ่มกวาดข้อมูล';
+        }
+
+        function updateStatus() {
+            fetch('/api/status')
+                .then(response => response.json())
+                .then(data => {
+                    // Update status text
+                    const statusText = document.getElementById('status-text');
+                    statusText.textContent = data.is_running ? '🔄 กำลังดำเนินการ...' : '⏸️ พร้อมใช้งาน';
+                    
+                    // Update last run
+                    const lastRun = document.getElementById('last-run');
+                    lastRun.textContent = data.last_run || 'ยังไม่เคยรัน';
+                    
+                    // Update last result
+                    const lastResult = document.getElementById('last-result');
+                    lastResult.textContent = data.last_result || '-';
+                    
+                    // Update progress
+                    const progressText = document.getElementById('progress-text');
+                    progressText.textContent = data.progress || '';
+                    
+                    // Update logs
+                    const logsContainer = document.getElementById('logs-container');
+                    if (data.logs && data.logs.length > 0) {
+                        logsContainer.innerHTML = data.logs.slice(-10).map(log => 
+                            `<div class="text-sm text-gray-700 font-mono mb-1">${log}</div>`
+                        ).join('');
+                    }
+                    
+                    // Stop polling if not running
+                    if (!data.is_running && statusInterval) {
+                        stopStatusPolling();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error updating status:', error);
+                });
+        }
+
+        // Initial status update
+        updateStatus();
+        
+        // Auto-refresh every 30 seconds when not actively scraping
+        setInterval(() => {
+            if (!statusInterval) {
+                updateStatus();
+            }
+        }, 30000);
+    </script>
+</body>
+</html>
