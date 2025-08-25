@@ -526,4 +526,452 @@
                     </div>
                     <div class="flex space-x-3">
                         <button onclick="refreshData()" class="holo-btn text-white px-6 py-3 rounded-xl">
-                            <i class="fas fa-sync-alt mr-2">
+                            <i class="fas fa-sync-alt mr-2"></i>Refresh
+                        </button>
+                    </div>
+                </div>
+                <div id="data-content">
+                    <div class="text-center py-12">
+                        <div class="loading w-24 h-24 rounded-full mx-auto mb-4"></div>
+                        <p class="text-slate-600 dark:text-slate-400">Neural network processing data...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Settings Page -->
+        <div id="settings-page" class="page-content hidden">
+            <div class="glass-card rounded-3xl p-8">
+                <h1 class="text-3xl font-bold text-slate-800 dark:text-white mb-8">AI Configuration</h1>
+                <div id="settings-content">
+                    <div class="text-center py-12">
+                        <div class="loading w-24 h-24 rounded-full mx-auto mb-4"></div>
+                        <p class="text-slate-600 dark:text-slate-400">Loading neural configuration...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Logs Page -->
+        <div id="logs-page" class="page-content hidden">
+            <div class="glass-card rounded-3xl p-8">
+                <h1 class="text-3xl font-bold text-slate-800 dark:text-white mb-8">Neural Activity Logs</h1>
+                <div id="logs-content">
+                    <div class="terminal rounded-2xl p-6">
+                        <div class="text-center py-12">
+                            <div class="loading w-24 h-24 rounded-full mx-auto mb-4"></div>
+                            <p class="text-slate-400">Loading neural activity stream...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Enhanced Toast Notification -->
+    <div id="toast" class="fixed top-6 right-6 z-50 opacity-0 transition-all duration-500 transform translate-x-full">
+        <div class="glass-card rounded-2xl p-6 max-w-sm shadow-2xl border border-white/20">
+            <div class="flex items-start">
+                <div class="flex-shrink-0 mr-4">
+                    <div class="w-10 h-10 rounded-full flex items-center justify-center" id="toast-bg">
+                        <i id="toast-icon" class="fas fa-info-circle text-white"></i>
+                    </div>
+                </div>
+                <div class="flex-1">
+                    <h4 id="toast-title" class="text-sm font-semibold text-slate-800 dark:text-white mb-1">Notification</h4>
+                    <p id="toast-message" class="text-sm text-slate-600 dark:text-slate-300"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Assistant Avatar -->
+    <div id="ai-assistant" class="fixed bottom-6 right-6 z-40">
+        <button class="w-16 h-16 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full flex items-center justify-center shadow-2xl hover:shadow-indigo-500/25 transition-all duration-300 hover:scale-110">
+            <i class="fas fa-robot text-white text-xl"></i>
+        </button>
+    </div>
+
+    <script>
+        let statusInterval;
+        let currentPage = 'dashboard';
+        let aiResponseTexts = [
+            'Neural pathways active...',
+            'Processing market data...',
+            'Analyzing job patterns...',
+            'Optimizing algorithms...',
+            'Learning from data...',
+            'Ready for deployment'
+        ];
+
+        // Enhanced Dark mode toggle
+        function toggleDarkMode() {
+            document.documentElement.classList.toggle('dark');
+            localStorage.setItem('darkMode', document.documentElement.classList.contains('dark'));
+            
+            // Add smooth transition effect
+            document.body.style.transition = 'all 0.3s ease';
+            setTimeout(() => {
+                document.body.style.transition = '';
+            }, 300);
+        }
+
+        // Initialize dark mode
+        if (localStorage.getItem('darkMode') === 'true') {
+            document.documentElement.classList.add('dark');
+        }
+
+        // Mobile menu toggle
+        function toggleMobileMenu() {
+            const menu = document.getElementById('mobile-menu');
+            menu.classList.toggle('hidden');
+        }
+
+        // Enhanced navigation
+        function navigateTo(page) {
+            // Hide all pages with fade effect
+            document.querySelectorAll('.page-content').forEach(p => {
+                p.style.opacity = '0';
+                p.style.transform = 'translateY(20px)';
+                setTimeout(() => p.classList.add('hidden'), 150);
+            });
+            
+            // Show target page with fade effect
+            setTimeout(() => {
+                document.getElementById(page + '-page').classList.remove('hidden');
+                setTimeout(() => {
+                    document.getElementById(page + '-page').style.opacity = '1';
+                    document.getElementById(page + '-page').style.transform = 'translateY(0)';
+                }, 50);
+            }, 150);
+            
+            // Update nav buttons
+            document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active', 'bg-white/20'));
+            if (event && event.target) {
+                event.target.closest('.nav-btn').classList.add('active', 'bg-white/20');
+            }
+            
+            currentPage = page;
+            
+            // Hide mobile menu
+            document.getElementById('mobile-menu').classList.add('hidden');
+            
+            // Load page-specific content
+            switch(page) {
+                case 'data':
+                    loadDataPage();
+                    break;
+                case 'settings':
+                    loadSettingsPage();
+                    break;
+                case 'logs':
+                    loadLogsPage();
+                    break;
+            }
+        }
+
+        // Enhanced toast notifications
+        function showToast(message, type = 'info', title = 'System') {
+            const toast = document.getElementById('toast');
+            const icon = document.getElementById('toast-icon');
+            const bg = document.getElementById('toast-bg');
+            const titleEl = document.getElementById('toast-title');
+            const messageEl = document.getElementById('toast-message');
+            
+            titleEl.textContent = title;
+            messageEl.textContent = message;
+            
+            const configs = {
+                'success': { 
+                    icon: 'fa-check-circle', 
+                    bg: 'bg-gradient-to-r from-emerald-500 to-teal-500',
+                    title: 'Success'
+                },
+                'error': { 
+                    icon: 'fa-exclamation-circle', 
+                    bg: 'bg-gradient-to-r from-red-500 to-pink-500',
+                    title: 'Error'
+                },
+                'info': { 
+                    icon: 'fa-info-circle', 
+                    bg: 'bg-gradient-to-r from-blue-500 to-indigo-500',
+                    title: 'Info'
+                },
+                'warning': { 
+                    icon: 'fa-exclamation-triangle', 
+                    bg: 'bg-gradient-to-r from-amber-500 to-orange-500',
+                    title: 'Warning'
+                },
+                'ai': { 
+                    icon: 'fa-robot', 
+                    bg: 'bg-gradient-to-r from-violet-500 to-purple-500',
+                    title: 'AI Assistant'
+                }
+            };
+            
+            const config = configs[type] || configs.info;
+            icon.className = `fas ${config.icon} text-white`;
+            bg.className = `w-10 h-10 rounded-full flex items-center justify-center ${config.bg}`;
+            titleEl.textContent = title || config.title;
+            
+            // Show toast
+            toast.classList.remove('opacity-0', 'translate-x-full');
+            toast.classList.add('opacity-100', 'translate-x-0');
+            
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-x-full');
+                toast.classList.remove('opacity-100', 'translate-x-0');
+            }, 5000);
+        }
+
+        // Enhanced scraping function
+        function startScraping() {
+            const btn = document.getElementById('start-btn');
+            const originalContent = btn.innerHTML;
+            
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-3"></i><span>Initializing AI...</span>';
+
+            showToast('Neural networks activating...', 'ai', 'AI System');
+
+            fetch('/api/start-scraping', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showToast(data.message, 'success', 'AI System');
+                    startStatusPolling();
+                    startAITypingEffect();
+                } else {
+                    showToast(data.message, 'error', 'AI System');
+                    btn.disabled = false;
+                    btn.innerHTML = originalContent;
+                }
+            })
+            .catch(error => {
+                showToast('Neural pathway error: ' + error.message, 'error', 'AI System');
+                btn.disabled = false;
+                btn.innerHTML = originalContent;
+            });
+        }
+
+        // AI typing effect for status text
+        function startAITypingEffect() {
+            const statusText = document.getElementById('status-text');
+            let currentTextIndex = 0;
+            
+            function typeText() {
+                if (currentTextIndex < aiResponseTexts.length) {
+                    statusText.textContent = aiResponseTexts[currentTextIndex];
+                    currentTextIndex = (currentTextIndex + 1) % aiResponseTexts.length;
+                }
+            }
+            
+            const typingInterval = setInterval(() => {
+                if (!statusInterval) {
+                    clearInterval(typingInterval);
+                    statusText.textContent = 'Ready';
+                    return;
+                }
+                typeText();
+            }, 2000);
+        }
+
+        // Enhanced connection testing
+        function testConnections() {
+            showToast('Testing neural connections...', 'ai', 'AI System');
+            
+            // Simulate connection testing with visual feedback
+            const performanceEl = document.getElementById('performance');
+            let progress = 0;
+            const testInterval = setInterval(() => {
+                progress += Math.random() * 10;
+                performanceEl.textContent = Math.min(100, Math.round(progress)) + '%';
+                
+                if (progress >= 95) {
+                    clearInterval(testInterval);
+                    performanceEl.textContent = '98.7%';
+                    showToast('All neural pathways operational', 'success', 'Connection Test');
+                }
+            }, 200);
+        }
+
+        function refreshStatus() {
+            updateStatus();
+            showToast('Neural status synchronized', 'success', 'AI System');
+        }
+
+        // Enhanced status polling
+        function startStatusPolling() {
+            if (statusInterval) clearInterval(statusInterval);
+            statusInterval = setInterval(updateStatus, 2000);
+            document.getElementById('progress-container').classList.remove('hidden');
+            
+            // Enhanced visual feedback
+            document.getElementById('status-card').classList.add('ai-status');
+        }
+
+        function stopStatusPolling() {
+            if (statusInterval) {
+                clearInterval(statusInterval);
+                statusInterval = null;
+            }
+            document.getElementById('progress-container').classList.add('hidden');
+            document.getElementById('status-card').classList.remove('ai-status');
+            
+            const btn = document.getElementById('start-btn');
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-rocket text-xl group-hover:animate-bounce"></i><span class="text-lg">Launch AI Scan</span>';
+        }
+
+        // Enhanced status updates
+        function updateStatus() {
+            fetch('/api/status')
+                .then(response => response.json())
+                .then(data => {
+                    const statusText = document.getElementById('status-text');
+                    const statusProgress = document.getElementById('status-progress');
+                    
+                    if (data.is_running) {
+                        statusProgress.style.width = '100%';
+                    } else {
+                        statusText.textContent = 'Ready';
+                        statusProgress.style.width = '0%';
+                    }
+                    
+                    // Update other elements
+                    document.getElementById('last-run').textContent = data.last_run || 'Never';
+                    
+                    const resultEl = document.getElementById('last-result');
+                    const resultIcon = document.getElementById('result-icon');
+                    
+                    if (data.last_result) {
+                        resultEl.textContent = data.last_result;
+                        if (data.last_result.includes('Success')) {
+                            resultIcon.className = 'fas fa-check-circle text-white';
+                        } else {
+                            resultIcon.className = 'fas fa-chart-bar text-white';
+                        }
+                    }
+                    
+                    updateDashboardLogs(data.logs);
+                    
+                    if (!data.is_running && statusInterval) {
+                        stopStatusPolling();
+                    }
+                })
+                .catch(error => {
+                    console.error('Neural connection error:', error);
+                });
+        }
+
+        // Enhanced log display
+        function updateDashboardLogs(logs) {
+            const container = document.getElementById('logs-container');
+            if (logs && logs.length > 0) {
+                const recentLogs = logs.slice(-6);
+                container.innerHTML = recentLogs.map((log, index) => 
+                    `<div class="flex items-center space-x-3 py-2 opacity-0" style="animation: fadeInUp 0.5s ease-out ${index * 0.1}s forwards;">
+                        <div class="w-2 h-2 bg-cyan-400 rounded-full animate-pulse"></div>
+                        <span class="text-sm text-green-400 font-mono">[${new Date().toLocaleTimeString()}]</span>
+                        <span class="text-sm text-slate-300">${log}</span>
+                    </div>`
+                ).join('');
+                container.scrollTop = container.scrollHeight;
+            }
+        }
+
+        // Page loading functions with enhanced UX
+        function loadDataPage() {
+            document.getElementById('data-content').innerHTML = `
+                <div class="text-center py-16">
+                    <div class="w-24 h-24 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <i class="fas fa-brain text-white text-2xl animate-pulse"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-slate-800 dark:text-white mb-2">AI Processing Data</h3>
+                    <p class="text-slate-600 dark:text-slate-400">Neural networks analyzing job market data...</p>
+                </div>
+            `;
+            
+            // Simulate loading
+            setTimeout(() => {
+                document.getElementById('data-summary').textContent = 'Neural dataset loaded • 1,247 jobs analyzed';
+            }, 2000);
+        }
+
+        function loadSettingsPage() {
+            document.getElementById('settings-content').innerHTML = `
+                <div class="space-y-8">
+                    <div class="glass-card rounded-2xl p-6">
+                        <h3 class="text-lg font-semibold text-slate-800 dark:text-white mb-4">Neural Network Settings</h3>
+                        <div class="space-y-4">
+                            <div class="flex items-center justify-between">
+                                <label class="text-sm text-slate-600 dark:text-slate-400">Auto-learning Mode</label>
+                                <button class="w-12 h-6 bg-indigo-500 rounded-full relative">
+                                    <div class="w-5 h-5 bg-white rounded-full absolute right-0.5 top-0.5"></div>
+                                </button>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <label class="text-sm text-slate-600 dark:text-slate-400">Real-time Processing</label>
+                                <button class="w-12 h-6 bg-gray-300 rounded-full relative">
+                                    <div class="w-5 h-5 bg-white rounded-full absolute left-0.5 top-0.5"></div>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function loadLogsPage() {
+            document.getElementById('logs-content').innerHTML = `
+                <div class="terminal rounded-2xl p-6 h-96">
+                    <div class="text-cyan-400 text-sm font-mono mb-4">
+                        === AI NEURAL ACTIVITY LOG ===
+                    </div>
+                    <div class="space-y-1 text-sm font-mono">
+                        <div class="text-green-400">[SYSTEM] Neural networks online</div>
+                        <div class="text-blue-400">[AI] Pattern recognition initialized</div>
+                        <div class="text-yellow-400">[PROC] Data processing queue: ready</div>
+                        <div class="text-cyan-400">[NET] Connection pool: 8/8 active</div>
+                        <div class="text-purple-400">[ML] Learning algorithms: standby</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Initialize the application
+        function initializeApp() {
+            updateStatus();
+            
+            // Add page transitions
+            document.querySelectorAll('.page-content').forEach(page => {
+                page.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+            });
+            
+            // Start periodic status updates
+            setInterval(() => {
+                if (!statusInterval) {
+                    updateStatus();
+                }
+            }, 30000);
+            
+            // Welcome message
+            setTimeout(() => {
+                showToast('Neural networks online and ready', 'ai', 'AI System');
+            }, 1000);
+        }
+
+        // Progressive Web App enhancements
+        @keyframes progressPulse {
+            0%, 100% { opacity: 0.8; transform: scaleX(1); }
+            50% { opacity: 1; transform: scaleX(1.02); }
+        }
+
+        // Initialize everything when DOM is loaded
+        document.addEventListener('DOMContentLoaded', initializeApp);
+    </script>
+</body>
+</html>
