@@ -313,6 +313,19 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+
+        /* Pagination Styles */
+        .pagination-btn {
+            transition: all 0.3s ease;
+        }
+
+        .pagination-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .pagination-btn.active {
+            background: var(--ai-gradient);
+        }
     </style>
 </head>
 <body class="bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-900 dark:via-slate-800 dark:to-indigo-900 min-h-screen transition-all duration-500">
@@ -587,6 +600,10 @@
     <script>
         let statusInterval;
         let currentPage = 'dashboard';
+        let currentData = [];
+        let filteredData = [];
+        let currentPage_pagination = 1;
+        let rowsPerPage = 10; // ตั้งค่าเริ่มต้นเป็น 10 รายการ
 
         // Google Sheets Configuration
         const GOOGLE_SHEET_ID = '1U98CRxBxFD2ucnC0Ncxgw0Dx0Rt8HvCEKQuUo8zmOCY';
@@ -724,20 +741,26 @@
                 return '<div class="text-center py-16"><i class="fas fa-exclamation-triangle text-6xl text-amber-500 mb-6"></i><p class="text-xl text-slate-600 dark:text-slate-400">ไม่พบข้อมูล</p></div>';
             }
 
-            const headers = data[0];
-            const rows = data.slice(1);
+            const headers = ['NO.', ...data[0]]; // เพิ่มคอลัมน์ NO. ที่หัวตาราง
+            currentData = data.slice(1); // เก็บข้อมูลต้นฉบับ (ไม่รวม headers)
+            
+            // เรียงข้อมูลจากใหม่ไปเก่า (10 รายการล่าสุด)
+            currentData.reverse();
+            
+            filteredData = [...currentData]; // คัดลอกข้อมูลสำหรับการกรอง
+            currentPage_pagination = 1; // รีเซ็ตหน้า
 
             let html = `
                 <div class="mb-6 flex items-center justify-between">
                     <div class="text-sm text-slate-600 dark:text-slate-400">
-                        พบข้อมูล ${rows.length} รายการ จาก Google Sheets
+                        พบข้อมูล ${currentData.length} รายการ จาก Google Sheets (แสดง ${rowsPerPage} รายการล่าสุด)
                     </div>
                     <div class="flex space-x-2">
                         <input type="text" id="search-input" placeholder="ค้นหาข้อมูล..." 
                                class="px-4 py-2 rounded-xl border border-slate-300 dark:border-slate-600 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all">
                         <select id="rows-per-page" class="px-4 py-2 rounded-xl border border-slate-300 dark:border-slate-600 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm">
-                            <option value="10">10 รายการ</option>
-                            <option value="25" selected>25 รายการ</option>
+                            <option value="10" selected>10 รายการ</option>
+                            <option value="25">25 รายการ</option>
                             <option value="50">50 รายการ</option>
                             <option value="100">100 รายการ</option>
                         </select>
@@ -749,26 +772,18 @@
                             <tr>
             `;
 
-            headers.forEach(header => {
-                html += `<th class="whitespace-nowrap">${header || 'ไม่ระบุ'}</th>`;
+            headers.forEach((header, index) => {
+                if (index === 0) {
+                    html += `<th class="whitespace-nowrap text-center w-16">${header}</th>`;
+                } else {
+                    html += `<th class="whitespace-nowrap">${header || 'ไม่ระบุ'}</th>`;
+                }
             });
 
             html += `
                             </tr>
                         </thead>
                         <tbody id="table-body">
-            `;
-
-            rows.forEach((row, index) => {
-                html += '<tr>';
-                headers.forEach((_, colIndex) => {
-                    const cellValue = row[colIndex] || '';
-                    html += `<td class="whitespace-nowrap text-sm text-slate-800 dark:text-slate-200">${cellValue}</td>`;
-                });
-                html += '</tr>';
-            });
-
-            html += `
                         </tbody>
                     </table>
                 </div>
@@ -781,38 +796,144 @@
             return html;
         }
 
+        function renderTableData() {
+            const tableBody = document.getElementById('table-body');
+            if (!tableBody) return;
+
+            // คำนวณข้อมูลสำหรับหน้าปัจจุบัน
+            const startIndex = (currentPage_pagination - 1) * rowsPerPage;
+            const endIndex = Math.min(startIndex + rowsPerPage, filteredData.length);
+            const pageData = filteredData.slice(startIndex, endIndex);
+
+            // สร้างแถวในตาราง
+            let html = '';
+            pageData.forEach((row, index) => {
+                const globalIndex = startIndex + index + 1; // เลขลำดับทั้งหมด
+                html += '<tr>';
+                html += `<td class="text-center text-sm font-medium text-slate-800 dark:text-slate-200">${globalIndex}</td>`;
+                row.forEach(cell => {
+                    const cellValue = cell || '';
+                    html += `<td class="whitespace-nowrap text-sm text-slate-800 dark:text-slate-200">${cellValue}</td>`;
+                });
+                html += '</tr>';
+            });
+
+            tableBody.innerHTML = html;
+            updatePaginationInfo();
+            updatePaginationControls();
+        }
+
+        function updatePaginationInfo() {
+            const paginationInfo = document.getElementById('pagination-info');
+            if (!paginationInfo) return;
+
+            const startIndex = (currentPage_pagination - 1) * rowsPerPage + 1;
+            const endIndex = Math.min(currentPage_pagination * rowsPerPage, filteredData.length);
+            
+            paginationInfo.textContent = `แสดง ${startIndex}-${endIndex} จากทั้งหมด ${filteredData.length} รายการ`;
+        }
+
+        function updatePaginationControls() {
+            const paginationControls = document.getElementById('pagination-controls');
+            if (!paginationControls) return;
+
+            const totalPages = Math.ceil(filteredData.length / rowsPerPage);
+            
+            if (totalPages <= 1) {
+                paginationControls.innerHTML = '';
+                return;
+            }
+
+            let html = '';
+            
+            // Previous button
+            html += `<button onclick="changePage(${currentPage_pagination - 1})" 
+                     class="pagination-btn px-3 py-2 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-200 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm border border-slate-300 dark:border-slate-600 
+                     ${currentPage_pagination === 1 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-500 hover:text-white'}"
+                     ${currentPage_pagination === 1 ? 'disabled' : ''}>
+                     <i class="fas fa-chevron-left"></i>
+                     </button>`;
+
+            // Page numbers
+            const maxVisiblePages = 5;
+            let startPage = Math.max(1, currentPage_pagination - Math.floor(maxVisiblePages / 2));
+            let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+            
+            if (endPage - startPage < maxVisiblePages - 1) {
+                startPage = Math.max(1, endPage - maxVisiblePages + 1);
+            }
+
+            for (let i = startPage; i <= endPage; i++) {
+                html += `<button onclick="changePage(${i})" 
+                         class="pagination-btn px-4 py-2 rounded-lg text-sm font-medium 
+                         ${i === currentPage_pagination 
+                           ? 'active text-white' 
+                           : 'text-slate-700 dark:text-slate-200 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm border border-slate-300 dark:border-slate-600 hover:bg-blue-500 hover:text-white'}">${i}</button>`;
+            }
+
+            // Next button
+            html += `<button onclick="changePage(${currentPage_pagination + 1})" 
+                     class="pagination-btn px-3 py-2 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-200 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm border border-slate-300 dark:border-slate-600 
+                     ${currentPage_pagination === totalPages ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-500 hover:text-white'}"
+                     ${currentPage_pagination === totalPages ? 'disabled' : ''}>
+                     <i class="fas fa-chevron-right"></i>
+                     </button>`;
+
+            paginationControls.innerHTML = html;
+        }
+
+        function changePage(page) {
+            const totalPages = Math.ceil(filteredData.length / rowsPerPage);
+            if (page < 1 || page > totalPages) return;
+            
+            currentPage_pagination = page;
+            renderTableData();
+        }
+
         function initializeTableFeatures() {
             const searchInput = document.getElementById('search-input');
-            const rowsPerPage = document.getElementById('rows-per-page');
+            const rowsPerPageSelect = document.getElementById('rows-per-page');
             
             if (searchInput) {
                 searchInput.addEventListener('input', handleSearch);
             }
             
-            if (rowsPerPage) {
-                rowsPerPage.addEventListener('change', handleRowsPerPageChange);
+            if (rowsPerPageSelect) {
+                // ตั้งค่าเริ่มต้นเป็น 10 รายการ
+                rowsPerPageSelect.value = '10';
+                rowsPerPageSelect.addEventListener('change', handleRowsPerPageChange);
             }
+
+            // เรนเดอร์ข้อมูลครั้งแรก
+            renderTableData();
         }
 
         function handleSearch() {
-            // Simple search implementation
-            const searchTerm = document.getElementById('search-input').value.toLowerCase();
-            const tableBody = document.getElementById('table-body');
-            const rows = tableBody.getElementsByTagName('tr');
+            const searchTerm = document.getElementById('search-input').value.toLowerCase().trim();
             
-            Array.from(rows).forEach(row => {
-                const text = row.textContent.toLowerCase();
-                if (text.includes(searchTerm)) {
-                    row.style.display = '';
-                } else {
-                    row.style.display = 'none';
-                }
-            });
+            if (searchTerm === '') {
+                filteredData = [...currentData];
+            } else {
+                filteredData = currentData.filter(row => 
+                    row.some(cell => cell && cell.toString().toLowerCase().includes(searchTerm))
+                );
+            }
+            
+            currentPage_pagination = 1; // รีเซ็ตไปหน้าแรก
+            renderTableData();
         }
 
         function handleRowsPerPageChange() {
-            // Pagination implementation would go here
-            console.log('Rows per page changed');
+            const newRowsPerPage = parseInt(document.getElementById('rows-per-page').value);
+            rowsPerPage = newRowsPerPage;
+            currentPage_pagination = 1; // รีเซ็ตไปหน้าแรก
+            renderTableData();
+            
+            // อัพเดทข้อความแสดงจำนวนรายการ
+            const summaryElement = document.querySelector('.mb-6 .text-sm');
+            if (summaryElement) {
+                summaryElement.textContent = `พบข้อมูล ${currentData.length} รายการ จาก Google Sheets (แสดง ${rowsPerPage} รายการต่อหน้า)`;
+            }
         }
 
         function exportData() {
@@ -821,7 +942,16 @@
             loadGoogleSheetData()
                 .then(data => {
                     if (data && data.length > 0) {
-                        const csvContent = data.map(row => 
+                        // เพิ่มคอลัมน์ NO. ในการ export
+                        const exportData = data.map((row, index) => {
+                            if (index === 0) {
+                                return ['NO.', ...row]; // เพิ่ม NO. ที่ header
+                            } else {
+                                return [index, ...row]; // เพิ่มเลขลำดับ
+                            }
+                        });
+                        
+                        const csvContent = exportData.map(row => 
                             row.map(cell => `"${cell}"`).join(',')
                         ).join('\n');
                         
@@ -1011,7 +1141,7 @@
                 .then(data => {
                     const tableHtml = createDataTable(data);
                     document.getElementById('data-content').innerHTML = tableHtml;
-                    document.getElementById('data-summary').textContent = `พบข้อมูล ${data.length - 1} รายการจาก Google Sheets (${SHEET_NAME})`;
+                    document.getElementById('data-summary').textContent = `พบข้อมูล ${data.length - 1} รายการจาก Google Sheets (${SHEET_NAME}) - แสดง 10 รายการล่าสุด`;
                     
                     // Initialize table features after content is loaded
                     setTimeout(initializeTableFeatures, 100);
