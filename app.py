@@ -3,7 +3,7 @@ import json
 import asyncio
 import threading
 from datetime import datetime, timezone
-from flask import Flask, render_template, request, jsonify, redirect, url_for, session
+from flask import Flask, render_template, request, jsonify, redirect, url_for, session, render_template_string
 import pandas as pd
 import gspread
 from google.oauth2.service_account import Credentials
@@ -17,6 +17,7 @@ app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'your-secret-key-change-this
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
+logging.getLogger('werkzeug').setLevel(logging.WARNING)  # Reduce Flask logs
 logger = logging.getLogger(__name__)
 
 # Global variables to track scraping status
@@ -31,9 +32,10 @@ scraping_status = {
 def add_log(message):
     """Add log message with timestamp"""
     timestamp = datetime.now().strftime('%H:%M:%S')
-    scraping_status['logs'].append(f"[{timestamp}] {message}")
-    if len(scraping_status['logs']) > 50:  # Keep only last 50 logs
-        scraping_status['logs'] = scraping_status['logs'][-50:]
+    log_entry = f"[{timestamp}] {message}"
+    scraping_status['logs'].append(log_entry)
+    if len(scraping_status['logs']) > 100:  # Keep only last 100 logs
+        scraping_status['logs'] = scraping_status['logs'][-100:]
     logger.info(message)
 
 def run_scraping_sync():
@@ -68,13 +70,24 @@ def run_scraping_thread():
 
 @app.route('/')
 def dashboard():
-    """Main dashboard page"""
+    """Main dashboard page - now serves the modern SPA"""
+    # Read the modern dashboard HTML file
+    try:
+        with open('templates/modern_dashboard.html', 'r', encoding='utf-8') as f:
+            return f.read()
+    except FileNotFoundError:
+        # Fallback to inline template if file doesn't exist
+        return render_template_string(MODERN_DASHBOARD_TEMPLATE)
+
+# Legacy routes for backward compatibility and AJAX loading
+@app.route('/dashboard')
+def dashboard_legacy():
+    """Legacy dashboard route"""
     return render_template('dashboard.html', status=scraping_status)
 
 @app.route('/settings')
 def settings():
     """Settings configuration page"""
-    # Get current environment variables for display
     config = {
         'EDOCLITE_USER': os.environ.get('EDOCLITE_USER', ''),
         'GOOGLE_SHEET_ID': os.environ.get('GOOGLE_SHEET_ID', ''),
@@ -113,6 +126,12 @@ def view_data():
                              error=str(e),
                              total_count=0)
 
+@app.route('/logs')
+def view_logs():
+    """View application logs"""
+    return render_template('logs.html', logs=scraping_status['logs'])
+
+# API Endpoints
 @app.route('/api/start-scraping', methods=['POST'])
 def start_scraping():
     """API endpoint to start scraping"""
@@ -152,9 +171,13 @@ def test_connection():
                 config.GOOGLE_SVC_JSON_RAW,
                 config.GOOGLE_SVC_JSON_B64
             )
+            # Try to access the sheet
+            ws = sheet_manager.get_or_create_worksheet(config.MASTER_SHEET_NAME)
             results['google_sheets'] = {'status': 'success', 'message': 'เชื่อมต่อ Google Sheets สำเร็จ'}
+            add_log('✅ Google Sheets connection test successful')
         except Exception as e:
             results['google_sheets'] = {'status': 'error', 'message': f'Google Sheets Error: {str(e)}'}
+            add_log(f'❌ Google Sheets connection test failed: {str(e)}')
         
         # Test LINE Notify
         try:
@@ -162,20 +185,79 @@ def test_connection():
             success = notifier.send('🔔 ทดสอบการเชื่อมต่อ LINE Notify สำเร็จ')
             if success:
                 results['line_notify'] = {'status': 'success', 'message': 'ส่ง LINE Notify สำเร็จ'}
+                add_log('✅ LINE Notify connection test successful')
             else:
                 results['line_notify'] = {'status': 'error', 'message': 'LINE Notify ส่งไม่สำเร็จ'}
+                add_log('❌ LINE Notify connection test failed')
         except Exception as e:
             results['line_notify'] = {'status': 'error', 'message': f'LINE Notify Error: {str(e)}'}
+            add_log(f'❌ LINE Notify connection test failed: {str(e)}')
         
         return jsonify({'success': True, 'results': results})
     except Exception as e:
+        add_log(f'Connection test error: {str(e)}')
         return jsonify({'success': False, 'message': str(e)})
 
-@app.route('/logs')
-def view_logs():
-    """View application logs"""
-    return render_template('logs.html', logs=scraping_status['logs'])
+@app.route('/api/data')
+def get_data_json():
+    """API endpoint to get data as JSON"""
+    try:
+        config = Config()
+        sheet_manager = GoogleSheetManager(
+            config.GOOGLE_SHEET_ID,
+            config.GOOGLE_SVC_JSON_RAW,
+            config.GOOGLE_SVC_JSON_B64
+        )
+        
+        ws = sheet_manager.get_or_create_worksheet(config.MASTER_SHEET_NAME)
+        data = ws.get_all_records()
+        
+        return jsonify({
+            'success': True,
+            'data': data[-50:] if len(data) > 50 else data,  # Last 50 records
+            'total_count': len(data),
+            'sheet_url': f"https://docs.google.com/spreadsheets/d/{config.GOOGLE_SHEET_ID}"
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'data': [],
+            'total_count': 0
+        })
+
+@app.route('/health')
+def health_check():
+    """Health check endpoint for monitoring"""
+    return jsonify({
+        'status': 'healthy',
+        'timestamp': datetime.now().isoformat(),
+        'version': '2.0.0'
+    })
+
+# Error handlers
+@app.errorhandler(404)
+def not_found(error):
+    """Handle 404 errors"""
+    return jsonify({'error': 'Not found'}), 404
+
+@app.errorhandler(500)
+def internal_error(error):
+    """Handle 500 errors"""
+    return jsonify({'error': 'Internal server error'}), 500
+
+# Template fallback (in case modern_dashboard.html file is missing)
+MODERN_DASHBOARD_TEMPLATE = """
+<!-- Modern Dashboard Template will be inserted here if file is missing -->
+<!-- This should contain the same content as the modern_dashboard.html artifact -->
+"""
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port, debug=False)
+    debug_mode = os.environ.get('FLASK_ENV') == 'development'
+    
+    # Initialize logs
+    add_log('🚀 Job Scraper application starting...')
+    add_log(f'🌐 Server will start on port {port}')
+    
+    app.run(host='0.0.0.0', port=port, debug=debug_mode)
