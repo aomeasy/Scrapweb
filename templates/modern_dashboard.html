@@ -258,39 +258,6 @@
                 filter: brightness(1.2) hue-rotate(90deg);
             }
         }
-
-        /* Data table styles */
-        .data-table {
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .data-table th {
-            background: rgba(99, 102, 241, 0.1);
-            backdrop-filter: blur(8px);
-            border-bottom: 1px solid rgba(99, 102, 241, 0.2);
-        }
-
-        .data-table td {
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-        }
-
-        .data-table tr:hover {
-            background: rgba(99, 102, 241, 0.05);
-        }
-
-        /* Loading animation for data */
-        .data-loading {
-            background: linear-gradient(90deg, transparent, rgba(99, 102, 241, 0.1), transparent);
-            background-size: 200% 100%;
-            animation: dataLoad 2s infinite;
-        }
-
-        @keyframes dataLoad {
-            0% { background-position: -200% 0; }
-            100% { background-position: 200% 0; }
-        }
     </style>
 </head>
 <body class="bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-900 dark:via-slate-800 dark:to-indigo-900 min-h-screen transition-all duration-500">
@@ -501,14 +468,11 @@
                 <div class="flex items-center justify-between mb-8">
                     <div>
                         <h1 class="text-4xl font-bold text-slate-800 dark:text-white">Scraped Intelligence Data</h1>
-                        <p class="text-slate-600 dark:text-slate-400 mt-2 text-lg" id="data-summary">Loading neural data from Google Sheets...</p>
+                        <p class="text-slate-600 dark:text-slate-400 mt-2 text-lg" id="data-summary">Loading neural data analysis...</p>
                     </div>
                     <div class="flex space-x-3">
                         <button onclick="refreshData()" class="btn-primary text-white px-6 py-3 rounded-xl font-bold">
                             <i class="fas fa-sync-alt mr-2"></i>Refresh Data
-                        </button>
-                        <button onclick="exportData()" class="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white px-6 py-3 rounded-xl font-bold">
-                            <i class="fas fa-download mr-2"></i>Export CSV
                         </button>
                     </div>
                 </div>
@@ -516,9 +480,6 @@
                     <div class="text-center py-16">
                         <i class="fas fa-brain text-6xl text-blue-500 mb-6 loading-brain"></i>
                         <p class="text-xl text-slate-600 dark:text-slate-400">Processing neural networks...</p>
-                        <div class="mt-4">
-                            <div class="inline-block w-8 h-1 bg-blue-500 rounded-full data-loading"></div>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -568,16 +529,6 @@
     <script>
         let statusInterval;
         let currentPage = 'dashboard';
-        
-        // Google Sheets Configuration
-        const GOOGLE_SHEET_ID = '1U98CRxBxFD2ucnC0Ncxgw0Dx0Rt8HvCEKQuUo8zmOCY';
-        const SHEET_NAME = 'Master_Data';
-        const RANGE = 'D:AC'; // Columns D to AC
-        
-        // Cache for Google Sheets data
-        let sheetsData = [];
-        let lastDataFetch = null;
-        const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
         // Theme system
         function setTheme(theme) {
@@ -664,231 +615,6 @@
                 toast.classList.add('opacity-0', 'translate-y-2');
                 toast.classList.remove('opacity-100', 'translate-y-0');
             }, 4000);
-        }
-
-        // Google Sheets Integration
-        async function fetchGoogleSheetsData() {
-            try {
-                // Check cache first
-                if (sheetsData.length > 0 && lastDataFetch && 
-                    (Date.now() - lastDataFetch) < CACHE_DURATION) {
-                    return sheetsData;
-                }
-
-                showToast('Connecting to Google Sheets neural network...', 'info');
-                
-                // Google Sheets CSV export URL
-                const csvUrl = `https://docs.google.com/spreadsheets/d/${GOOGLE_SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${SHEET_NAME}&range=${RANGE}`;
-                
-                // Use a CORS proxy for client-side requests
-                const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(csvUrl)}`;
-                
-                const response = await fetch(proxyUrl);
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                
-                const data = await response.json();
-                const csvText = data.contents;
-                
-                // Parse CSV data
-                const rows = parseCSV(csvText);
-                
-                if (rows.length === 0) {
-                    throw new Error('No data found in the specified range');
-                }
-                
-                sheetsData = rows;
-                lastDataFetch = Date.now();
-                
-                showToast(`Neural data loaded: ${rows.length - 1} records processed`, 'success');
-                return sheetsData;
-                
-            } catch (error) {
-                console.error('Error fetching Google Sheets data:', error);
-                showToast(`Neural network connection failed: ${error.message}`, 'error');
-                
-                // Return sample data as fallback
-                return getSampleData();
-            }
-        }
-
-        // Simple CSV parser
-        function parseCSV(csvText) {
-            const lines = csvText.split('\n');
-            const result = [];
-            
-            for (let line of lines) {
-                if (line.trim()) {
-                    // Handle CSV with quoted values
-                    const row = [];
-                    let current = '';
-                    let inQuotes = false;
-                    
-                    for (let i = 0; i < line.length; i++) {
-                        const char = line[i];
-                        
-                        if (char === '"') {
-                            inQuotes = !inQuotes;
-                        } else if (char === ',' && !inQuotes) {
-                            row.push(current.trim());
-                            current = '';
-                        } else {
-                            current += char;
-                        }
-                    }
-                    row.push(current.trim());
-                    result.push(row);
-                }
-            }
-            
-            return result;
-        }
-
-        // Fallback sample data
-        function getSampleData() {
-            return [
-                ['Job Title', 'Company', 'Location', 'Salary', 'Experience', 'Skills', 'Posted Date', 'Application Link', 'Status', 'AI Score'],
-                ['Senior Frontend Developer', 'TechCorp Thailand', 'Bangkok, Thailand', '฿80,000 - ฿120,000', '5+ years', 'React, TypeScript, Node.js', '2025-01-15', 'https://example.com/job1', 'Active', '95%'],
-                ['Full Stack Developer', 'Digital Solutions Co.', 'Chiang Mai, Thailand', '฿60,000 - ฿90,000', '3+ years', 'Vue.js, Python, MySQL', '2025-01-14', 'https://example.com/job2', 'Active', '88%'],
-                ['DevOps Engineer', 'Cloud Systems Ltd.', 'Remote Thailand', '฿70,000 - ฿100,000', '4+ years', 'AWS, Docker, Kubernetes', '2025-01-13', 'https://example.com/job3', 'Active', '92%'],
-                ['UI/UX Designer', 'Creative Agency', 'Bangkok, Thailand', '฿50,000 - ฿75,000', '2+ years', 'Figma, Adobe XD, Sketch', '2025-01-12', 'https://example.com/job4', 'Closed', '85%'],
-                ['Data Scientist', 'AI Innovation Hub', 'Bangkok, Thailand', '฿90,000 - ฿140,000', '4+ years', 'Python, TensorFlow, SQL', '2025-01-11', 'https://example.com/job5', 'Active', '98%']
-            ];
-        }
-
-        // Render data table
-        function renderDataTable(data) {
-            if (!data || data.length === 0) {
-                return `
-                    <div class="text-center py-16">
-                        <i class="fas fa-exclamation-triangle text-6xl text-amber-500 mb-6"></i>
-                        <p class="text-xl text-slate-600 dark:text-slate-400">No neural data available</p>
-                    </div>
-                `;
-            }
-            
-            const headers = data[0];
-            const rows = data.slice(1);
-            
-            // Update data summary
-            document.getElementById('data-summary').textContent = 
-                `Neural analysis complete: ${rows.length} job opportunities processed`;
-            
-            return `
-                <div class="overflow-x-auto">
-                    <table class="data-table w-full rounded-2xl overflow-hidden">
-                        <thead>
-                            <tr>
-                                ${headers.map(header => 
-                                    `<th class="px-6 py-4 text-left text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider border-b border-slate-200 dark:border-slate-600">
-                                        ${header || 'Column'}
-                                    </th>`
-                                ).join('')}
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${rows.map((row, index) => 
-                                `<tr class="transition-all duration-200 hover:bg-slate-50 dark:hover:bg-slate-700/30" style="animation: fadeInUp 0.6s ease-out ${index * 0.1}s both">
-                                    ${row.map(cell => 
-                                        `<td class="px-6 py-4 text-sm text-slate-800 dark:text-slate-200 border-b border-slate-100 dark:border-slate-700">
-                                            ${formatCellContent(cell)}
-                                        </td>`
-                                    ).join('')}
-                                </tr>`
-                            ).join('')}
-                        </tbody>
-                    </table>
-                </div>
-                
-                <div class="mt-8 flex items-center justify-between glass-card rounded-2xl p-6">
-                    <div class="flex items-center space-x-4">
-                        <div class="w-12 h-12 ai-gradient-bg rounded-xl flex items-center justify-center">
-                            <i class="fas fa-chart-bar text-white text-lg"></i>
-                        </div>
-                        <div>
-                            <h3 class="text-lg font-bold text-slate-800 dark:text-white">Neural Data Analytics</h3>
-                            <p class="text-slate-600 dark:text-slate-400">AI-powered job market intelligence</p>
-                        </div>
-                    </div>
-                    <div class="text-right">
-                        <div class="text-2xl font-bold text-slate-800 dark:text-white">${rows.length}</div>
-                        <div class="text-sm text-slate-600 dark:text-slate-400">Total Records</div>
-                    </div>
-                </div>
-            `;
-        }
-
-        // Format cell content
-        function formatCellContent(cell) {
-            if (!cell) return '-';
-            
-            // Handle URLs
-            if (typeof cell === 'string' && cell.startsWith('http')) {
-                return `<a href="${cell}" target="_blank" class="text-blue-600 hover:text-blue-800 dark:text-blue-400 hover:underline">
-                    <i class="fas fa-external-link-alt mr-1"></i>Link
-                </a>`;
-            }
-            
-            // Handle salary ranges
-            if (typeof cell === 'string' && (cell.includes('฿') || cell.includes('))) {
-                return `<span class="font-semibold text-green-600 dark:text-green-400">${cell}</span>`;
-            }
-            
-            // Handle status
-            if (typeof cell === 'string' && (cell.toLowerCase() === 'active' || cell.toLowerCase() === 'closed')) {
-                const isActive = cell.toLowerCase() === 'active';
-                return `<span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                    isActive 
-                        ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' 
-                        : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-                }">
-                    ${cell}
-                </span>`;
-            }
-            
-            // Handle AI scores
-            if (typeof cell === 'string' && cell.includes('%')) {
-                const score = parseInt(cell);
-                let colorClass = 'text-slate-600';
-                if (score >= 90) colorClass = 'text-emerald-600';
-                else if (score >= 80) colorClass = 'text-blue-600';
-                else if (score >= 70) colorClass = 'text-amber-600';
-                else colorClass = 'text-red-600';
-                
-                return `<span class="font-semibold ${colorClass}">${cell}</span>`;
-            }
-            
-            return cell.toString();
-        }
-
-        // Export data as CSV
-        function exportData() {
-            if (sheetsData.length === 0) {
-                showToast('No neural data available for export', 'warning');
-                return;
-            }
-            
-            try {
-                const csvContent = sheetsData.map(row => 
-                    row.map(cell => `"${cell}"`).join(',')
-                ).join('\n');
-                
-                const blob = new Blob([csvContent], { type: 'text/csv' });
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `ai_job_data_${new Date().toISOString().split('T')[0]}.csv`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                window.URL.revokeObjectURL(url);
-                
-                showToast('Neural data exported successfully', 'success');
-            } catch (error) {
-                showToast('Export failed: ' + error.message, 'error');
-            }
         }
 
         function startScraping() {
@@ -1043,28 +769,28 @@
             }
         }
 
-        async function loadDataPage() {
+        function loadDataPage() {
             document.getElementById('data-content').innerHTML = `
                 <div class="text-center py-16">
                     <i class="fas fa-brain text-6xl text-blue-500 mb-6 loading-brain"></i>
                     <p class="text-xl text-slate-600 dark:text-slate-400">Processing neural data streams...</p>
-                    <div class="mt-4">
-                        <div class="inline-block w-8 h-1 bg-blue-500 rounded-full data-loading"></div>
-                    </div>
                 </div>`;
             
-            try {
-                const data = await fetchGoogleSheetsData();
-                const tableHtml = renderDataTable(data);
-                document.getElementById('data-content').innerHTML = tableHtml;
-            } catch (error) {
-                document.getElementById('data-content').innerHTML = `
-                    <div class="text-center py-16">
-                        <i class="fas fa-exclamation-triangle text-6xl text-amber-500 mb-6"></i>
-                        <p class="text-xl text-slate-600 dark:text-slate-400">Neural data stream unavailable</p>
-                        <p class="text-sm text-slate-500 dark:text-slate-500 mt-2">${error.message}</p>
-                    </div>`;
-            }
+            fetch('/data')
+                .then(response => response.text())
+                .then(html => {
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html, 'text/html');
+                    const content = doc.querySelector('.max-w-7xl')?.innerHTML || 'No data available';
+                    document.getElementById('data-content').innerHTML = content;
+                })
+                .catch(error => {
+                    document.getElementById('data-content').innerHTML = `
+                        <div class="text-center py-16">
+                            <i class="fas fa-exclamation-triangle text-6xl text-amber-500 mb-6"></i>
+                            <p class="text-xl text-slate-600 dark:text-slate-400">Neural data stream unavailable</p>
+                        </div>`;
+                });
         }
 
         function loadSettingsPage() {
@@ -1117,9 +843,6 @@
 
         function refreshData() {
             if (currentPage === 'data') {
-                // Clear cache to force fresh data
-                sheetsData = [];
-                lastDataFetch = null;
                 loadDataPage();
             }
         }
@@ -1146,3 +869,4 @@
     </script>
 </body>
 </html>
+
