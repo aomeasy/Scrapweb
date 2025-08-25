@@ -1,101 +1,110 @@
 <!DOCTYPE html>
-<html lang="th">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Job Scraper Dashboard</title>
+    <title>AI Job Scraper Dashboard 2025</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap');
         
-        * { 
-            font-family: 'Space Grotesk', system-ui, sans-serif; 
-        }
-        
-        .font-mono {
-            font-family: 'JetBrains Mono', monospace;
-        }
+        * { font-family: 'Inter', sans-serif; }
+        .mono { font-family: 'JetBrains Mono', monospace; }
         
         :root {
             --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            --neo-gradient: linear-gradient(145deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
-            --glass-bg: rgba(255, 255, 255, 0.1);
-            --glass-border: rgba(255, 255, 255, 0.2);
+            --ai-gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #ec4899 100%);
+            --neural-gradient: linear-gradient(45deg, #06b6d4, #3b82f6, #8b5cf6, #ec4899);
+            --glass-bg: rgba(255, 255, 255, 0.08);
+            --glass-border: rgba(255, 255, 255, 0.12);
+            --shadow-glow: 0 0 50px rgba(99, 102, 241, 0.15);
             --shadow-soft: 0 8px 32px rgba(0, 0, 0, 0.1);
-            --glow-primary: 0 0 40px rgba(102, 126, 234, 0.6);
-            --text-glow: 0 0 10px rgba(255, 255, 255, 0.8);
         }
 
         .dark {
-            --glass-bg: rgba(0, 0, 0, 0.2);
-            --glass-border: rgba(255, 255, 255, 0.1);
+            --glass-bg: rgba(15, 23, 42, 0.4);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --shadow-glow: 0 0 50px rgba(99, 102, 241, 0.2);
         }
 
-        /* Enhanced Glass Cards with Neomorphism */
+        /* Theme Variables */
+        .theme-cyber {
+            --primary-gradient: linear-gradient(135deg, #00ff88 0%, #00b4d8 100%);
+            --ai-gradient: linear-gradient(135deg, #00ff88 0%, #00b4d8 50%, #0077b6 100%);
+        }
+
+        .theme-neon {
+            --primary-gradient: linear-gradient(135deg, #ff006e 0%, #8338ec 100%);
+            --ai-gradient: linear-gradient(135deg, #ff006e 0%, #8338ec 50%, #3a0ca3 100%);
+        }
+
+        .theme-ocean {
+            --primary-gradient: linear-gradient(135deg, #0077be 0%, #00a8cc 100%);
+            --ai-gradient: linear-gradient(135deg, #0077be 0%, #00a8cc 50%, #006ba6 100%);
+        }
+
         .glass-card {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            box-shadow: 
-                var(--shadow-soft),
-                inset 0 1px 0 rgba(255, 255, 255, 0.2),
-                0 1px 0 rgba(255, 255, 255, 0.1);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .glass-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
-            transition: left 0.5s;
-            pointer-events: none;
-        }
-
-        .glass-card:hover::before {
-            left: 100%;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(24px);
+            border: 1px solid var(--glass-border);
+            box-shadow: var(--shadow-soft), var(--shadow-glow);
         }
 
         .dark .glass-card {
-            background: rgba(15, 23, 42, 0.95);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            box-shadow: 
-                0 8px 32px rgba(0, 0, 0, 0.3),
-                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), var(--shadow-glow);
         }
 
-        /* Modern Navigation with better contrast */
+        .ai-gradient-bg {
+            background: var(--ai-gradient);
+            background-size: 200% 200%;
+            animation: gradientShift 8s ease-in-out infinite;
+        }
+
+        @keyframes gradientShift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        .neural-bg {
+            background: var(--neural-gradient);
+            background-size: 400% 400%;
+            animation: neuralPulse 6s ease-in-out infinite;
+        }
+
+        @keyframes neuralPulse {
+            0%, 100% { background-position: 0% 50%; }
+            25% { background-position: 100% 0%; }
+            50% { background-position: 100% 100%; }
+            75% { background-position: 0% 100%; }
+        }
+
         .nav-glass {
-            background: rgba(15, 23, 42, 0.95);
-            backdrop-filter: blur(20px);
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(32px);
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.1);
         }
 
-        /* Neon text effect for better visibility */
-        .nav-title {
-            color: #ffffff;
-            text-shadow: var(--text-glow);
-            font-weight: 700;
-            letter-spacing: -0.02em;
+        .dark .nav-glass {
+            background: rgba(15, 23, 42, 0.7);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
         }
 
-        .nav-subtitle {
-            color: #e2e8f0;
-            text-shadow: 0 0 5px rgba(226, 232, 240, 0.5);
-        }
-
-        /* Enhanced buttons with modern effects */
         .btn-primary {
-            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+            background: var(--ai-gradient);
+            background-size: 200% 200%;
             transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
             position: relative;
             overflow: hidden;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px) scale(1.02);
+            box-shadow: 0 12px 40px rgba(99, 102, 241, 0.4);
+            background-position: 100% 0%;
         }
 
         .btn-primary::before {
@@ -109,63 +118,27 @@
             transition: left 0.5s;
         }
 
-        .btn-primary:hover {
-            transform: translateY(-3px) scale(1.02);
-            box-shadow: 
-                0 15px 35px rgba(59, 130, 246, 0.4),
-                0 5px 15px rgba(0, 0, 0, 0.12);
-        }
-
         .btn-primary:hover::before {
             left: 100%;
         }
 
-        .btn-primary:active {
-            transform: translateY(-1px) scale(0.98);
-        }
-
-        /* Pulse glow with enhanced effects */
         .pulse-glow {
-            animation: pulseGlow 2s infinite;
-            position: relative;
+            animation: aiPulse 3s infinite;
         }
 
-        .pulse-glow::after {
-            content: '';
-            position: absolute;
-            top: -2px;
-            left: -2px;
-            right: -2px;
-            bottom: -2px;
-            border-radius: inherit;
-            background: radial-gradient(circle, rgba(34, 197, 94, 0.4), transparent);
-            animation: pulseRing 2s infinite;
-            z-index: -1;
-        }
-
-        @keyframes pulseGlow {
+        @keyframes aiPulse {
             0%, 100% { 
                 opacity: 1; 
-                box-shadow: 
-                    0 0 20px rgba(34, 197, 94, 0.6),
-                    0 0 40px rgba(34, 197, 94, 0.4),
-                    0 0 60px rgba(34, 197, 94, 0.2);
+                box-shadow: 0 0 25px rgba(99, 102, 241, 0.6), 0 0 50px rgba(139, 92, 246, 0.3);
+                transform: scale(1);
             }
             50% { 
                 opacity: 0.8; 
-                box-shadow: 
-                    0 0 30px rgba(34, 197, 94, 0.8),
-                    0 0 60px rgba(34, 197, 94, 0.6),
-                    0 0 90px rgba(34, 197, 94, 0.3);
+                box-shadow: 0 0 35px rgba(99, 102, 241, 0.8), 0 0 70px rgba(139, 92, 246, 0.5);
+                transform: scale(1.05);
             }
         }
 
-        @keyframes pulseRing {
-            0% { transform: scale(1); opacity: 1; }
-            100% { transform: scale(1.5); opacity: 0; }
-        }
-
-        /* Enhanced status indicator */
         .status-indicator {
             position: relative;
             overflow: hidden;
@@ -178,56 +151,35 @@
             left: -100%;
             width: 100%;
             height: 100%;
-            background: linear-gradient(90deg, 
-                transparent, 
-                rgba(34, 197, 94, 0.3), 
-                rgba(59, 130, 246, 0.3),
-                transparent
-            );
-            animation: shimmer 3s infinite;
+            background: linear-gradient(90deg, transparent, rgba(99, 102, 241, 0.3), transparent);
+            animation: aiShimmer 3s infinite;
         }
 
-        @keyframes shimmer {
+        @keyframes aiShimmer {
             0% { left: -100%; }
             100% { left: 100%; }
         }
 
-        /* Floating cards with enhanced hover */
         .floating-card {
-            transform: translateY(0) rotateX(0);
-            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-            transform-style: preserve-3d;
+            transform: translateY(0);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .floating-card:hover {
-            transform: translateY(-12px) rotateX(5deg);
-            box-shadow: 
-                0 20px 40px rgba(0, 0, 0, 0.15),
-                0 0 0 1px rgba(255, 255, 255, 0.1);
+            transform: translateY(-12px) scale(1.02);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1), var(--shadow-glow);
         }
 
-        /* Enhanced log entries */
         .log-entry {
             opacity: 0;
-            animation: fadeInUp 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .log-entry::before {
-            content: '';
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 3px;
-            height: 100%;
-            background: linear-gradient(to bottom, #3b82f6, #1d4ed8);
+            animation: fadeInUp 0.6s ease-out forwards;
+            border-left: 3px solid var(--ai-gradient);
         }
 
         @keyframes fadeInUp {
             from {
                 opacity: 0;
-                transform: translateY(30px) scale(0.95);
+                transform: translateY(20px) scale(0.95);
             }
             to {
                 opacity: 1;
@@ -235,160 +187,186 @@
             }
         }
 
-        /* Navigation button enhancement */
         .nav-btn {
             position: relative;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            overflow: hidden;
+            transition: all 0.3s ease;
         }
 
-        .nav-btn::before {
+        .nav-btn.active::after {
             content: '';
             position: absolute;
-            bottom: 0;
+            bottom: -1px;
             left: 50%;
-            width: 0;
-            height: 2px;
-            background: linear-gradient(90deg, #3b82f6, #1d4ed8);
-            transition: all 0.3s;
             transform: translateX(-50%);
+            width: 80%;
+            height: 2px;
+            background: var(--ai-gradient);
+            border-radius: 2px;
         }
 
-        .nav-btn.active::before,
-        .nav-btn:hover::before {
-            width: 100%;
+        .theme-selector {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
-        /* Modern progress bar */
-        .modern-progress {
-            background: linear-gradient(90deg, #3b82f6, #1d4ed8, #3b82f6);
-            background-size: 200% 100%;
-            animation: progressShine 2s linear infinite;
+        .theme-option {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
         }
 
-        @keyframes progressShine {
-            0% { background-position: 200% 0; }
-            100% { background-position: -200% 0; }
+        .theme-option:hover {
+            transform: scale(1.2);
+            border-color: rgba(255, 255, 255, 0.3);
         }
 
-        /* Icon enhancements */
-        .icon-glow {
-            filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.6));
+        .theme-option.active {
+            border-color: rgba(255, 255, 255, 0.8);
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
         }
 
-        /* Gradient text */
-        .gradient-text {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+        .ai-node {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: var(--ai-gradient);
+            border-radius: 50%;
+            opacity: 0.6;
+            animation: nodeFloat 4s ease-in-out infinite;
         }
 
-        /* Toast enhancement */
-        .toast-enter {
-            animation: toastSlideIn 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        @keyframes nodeFloat {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            50% { transform: translateY(-20px) rotate(180deg); }
         }
 
-        @keyframes toastSlideIn {
-            from {
-                opacity: 0;
-                transform: translateX(100%) scale(0.8);
+        .loading-brain {
+            animation: brainPulse 2s ease-in-out infinite;
+        }
+
+        @keyframes brainPulse {
+            0%, 100% { 
+                transform: scale(1);
+                filter: brightness(1) hue-rotate(0deg);
             }
-            to {
-                opacity: 1;
-                transform: translateX(0) scale(1);
+            50% { 
+                transform: scale(1.1);
+                filter: brightness(1.2) hue-rotate(90deg);
             }
-        }
-
-        /* Custom scrollbar */
-        ::-webkit-scrollbar {
-            width: 8px;
-        }
-
-        ::-webkit-scrollbar-track {
-            background: rgba(148, 163, 184, 0.1);
-            border-radius: 4px;
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-            border-radius: 4px;
-        }
-
-        ::-webkit-scrollbar-thumb:hover {
-            background: linear-gradient(135deg, #1d4ed8, #1e40af);
         }
     </style>
 </head>
-<body class="bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 min-h-screen transition-all duration-500">
-    <!-- Enhanced Navigation -->
+<body class="bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-900 dark:via-slate-800 dark:to-indigo-900 min-h-screen transition-all duration-500">
+    <!-- Animated Background Nodes -->
+    <div class="fixed inset-0 overflow-hidden pointer-events-none z-0">
+        <div class="ai-node" style="top: 10%; left: 20%; animation-delay: 0s;"></div>
+        <div class="ai-node" style="top: 30%; left: 80%; animation-delay: 1s;"></div>
+        <div class="ai-node" style="top: 70%; left: 10%; animation-delay: 2s;"></div>
+        <div class="ai-node" style="top: 50%; left: 60%; animation-delay: 3s;"></div>
+        <div class="ai-node" style="top: 80%; left: 40%; animation-delay: 1.5s;"></div>
+    </div>
+
+    <!-- Navigation -->
     <nav class="nav-glass sticky top-0 z-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-16">
-                <div class="flex items-center space-x-4">
-                    <div class="w-12 h-12 bg-gradient-to-r from-blue-500 via-purple-600 to-pink-500 rounded-xl flex items-center justify-center shadow-lg">
-                        <i class="fas fa-robot text-white text-xl icon-glow"></i>
+                <div class="flex items-center space-x-3">
+                    <div class="w-12 h-12 ai-gradient-bg rounded-xl flex items-center justify-center shadow-lg">
+                        <i class="fas fa-brain text-white text-xl loading-brain"></i>
                     </div>
                     <div>
-                        <h1 class="nav-title text-xl font-bold tracking-tight">Job Scraper</h1>
-                        <p class="nav-subtitle text-sm font-medium">AI Control Panel 2025</p>
+                        <h1 class="text-slate-800 dark:text-white font-bold text-xl tracking-tight">AI Job Scraper</h1>
+                        <p class="text-slate-600 dark:text-slate-300 text-xs font-medium">Neural Intelligence Dashboard</p>
                     </div>
                 </div>
                 
                 <div class="flex items-center space-x-1">
-                    <button onclick="navigateTo('dashboard')" class="nav-btn text-white hover:bg-white/20 px-4 py-2 rounded-xl transition-all active font-medium">
+                    <button onclick="navigateTo('dashboard')" class="nav-btn text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white px-4 py-2 rounded-lg transition-all active font-medium">
                         <i class="fas fa-tachometer-alt mr-2"></i>Dashboard
                     </button>
-                    <button onclick="navigateTo('data')" class="nav-btn text-white hover:bg-white/20 px-4 py-2 rounded-xl transition-all font-medium">
-                        <i class="fas fa-table mr-2"></i>ข้อมูล
+                    <button onclick="navigateTo('data')" class="nav-btn text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white px-4 py-2 rounded-lg transition-all font-medium">
+                        <i class="fas fa-database mr-2"></i>Data
                     </button>
-                    <button onclick="navigateTo('settings')" class="nav-btn text-white hover:bg-white/20 px-4 py-2 rounded-xl transition-all font-medium">
-                        <i class="fas fa-cog mr-2"></i>ตั้งค่า
+                    <button onclick="navigateTo('settings')" class="nav-btn text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white px-4 py-2 rounded-lg transition-all font-medium">
+                        <i class="fas fa-cog mr-2"></i>Settings
                     </button>
-                    <button onclick="navigateTo('logs')" class="nav-btn text-white hover:bg-white/20 px-4 py-2 rounded-xl transition-all font-medium">
+                    <button onclick="navigateTo('logs')" class="nav-btn text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white px-4 py-2 rounded-lg transition-all font-medium">
                         <i class="fas fa-file-alt mr-2"></i>Logs
                     </button>
                     
-                    <button onclick="toggleDarkMode()" class="text-white hover:bg-white/20 p-3 rounded-xl transition-all ml-3">
-                        <i class="fas fa-moon dark:hidden text-lg"></i>
-                        <i class="fas fa-sun hidden dark:block text-lg"></i>
-                    </button>
+                    <div class="flex items-center space-x-2 ml-6">
+                        <!-- Theme Selector -->
+                        <div class="theme-selector rounded-full px-3 py-2 flex items-center space-x-2">
+                            <div class="theme-option ai-gradient-bg active" data-theme="default" title="AI Theme"></div>
+                            <div class="theme-option bg-gradient-to-r from-green-400 to-cyan-400" data-theme="cyber" title="Cyber Theme"></div>
+                            <div class="theme-option bg-gradient-to-r from-pink-500 to-purple-600" data-theme="neon" title="Neon Theme"></div>
+                            <div class="theme-option bg-gradient-to-r from-blue-500 to-teal-500" data-theme="ocean" title="Ocean Theme"></div>
+                        </div>
+                        
+                        <button onclick="toggleDarkMode()" class="text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white p-2 rounded-lg transition-all">
+                            <i class="fas fa-moon dark:hidden"></i>
+                            <i class="fas fa-sun hidden dark:block"></i>
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
     </nav>
 
     <!-- Main Content -->
-    <div class="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8 relative z-10">
         <!-- Dashboard Page -->
         <div id="dashboard-page" class="page-content">
+            <!-- AI Status Banner -->
+            <div class="glass-card rounded-3xl p-6 mb-8 neural-bg relative overflow-hidden">
+                <div class="relative z-10 flex items-center justify-between">
+                    <div class="flex items-center space-x-4">
+                        <div class="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center">
+                            <i class="fas fa-robot text-white text-2xl pulse-glow"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-2xl font-bold text-white">AI-Powered Job Intelligence</h2>
+                            <p class="text-white/80 text-sm">Next-generation automated job market analysis</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-white/60 text-xs uppercase tracking-wider font-semibold">System Status</div>
+                        <div class="text-white text-lg font-bold" id="ai-status">Neural Network Active</div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Status Cards -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
                 <!-- Status Card -->
                 <div class="glass-card floating-card rounded-2xl p-6 status-indicator" id="status-card">
                     <div class="flex items-center justify-between mb-4">
-                        <div class="w-14 h-14 bg-gradient-to-r from-green-400 via-emerald-500 to-green-600 rounded-2xl flex items-center justify-center shadow-lg">
-                            <div class="w-4 h-4 bg-white rounded-full pulse-glow" id="status-dot"></div>
+                        <div class="w-12 h-12 ai-gradient-bg rounded-xl flex items-center justify-center">
+                            <div class="w-3 h-3 bg-white rounded-full pulse-glow" id="status-dot"></div>
                         </div>
                         <div class="text-right">
-                            <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">สถานะระบบ</p>
-                            <p class="text-xl font-bold gradient-text" id="status-text">พร้อมใช้งาน</p>
+                            <p class="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider font-semibold">System Status</p>
+                            <p class="text-lg font-bold text-slate-800 dark:text-white" id="status-text">Ready</p>
                         </div>
                     </div>
                     <div class="h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
-                        <div class="h-full modern-progress rounded-full transition-all duration-1000" id="status-progress" style="width: 0%"></div>
+                        <div class="h-full ai-gradient-bg rounded-full transition-all duration-1000" id="status-progress" style="width: 0%"></div>
                     </div>
                 </div>
 
                 <!-- Last Run Card -->
                 <div class="glass-card floating-card rounded-2xl p-6">
                     <div class="flex items-center justify-between mb-4">
-                        <div class="w-14 h-14 bg-gradient-to-r from-blue-400 via-cyan-500 to-blue-600 rounded-2xl flex items-center justify-center shadow-lg">
-                            <i class="fas fa-clock text-white text-xl icon-glow"></i>
+                        <div class="w-12 h-12 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center">
+                            <i class="fas fa-history text-white text-lg"></i>
                         </div>
                         <div class="text-right">
-                            <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">รันล่าสุด</p>
-                            <p class="text-sm font-bold text-slate-800 dark:text-white" id="last-run">ยังไม่เคยรัน</p>
+                            <p class="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider font-semibold">Last Execution</p>
+                            <p class="text-sm font-medium text-slate-800 dark:text-white" id="last-run">Never run</p>
                         </div>
                     </div>
                 </div>
@@ -396,12 +374,25 @@
                 <!-- Result Card -->
                 <div class="glass-card floating-card rounded-2xl p-6">
                     <div class="flex items-center justify-between mb-4">
-                        <div class="w-14 h-14 bg-gradient-to-r from-purple-400 via-pink-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg">
-                            <i class="fas fa-check-circle text-white text-xl icon-glow" id="result-icon"></i>
+                        <div class="w-12 h-12 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl flex items-center justify-center">
+                            <i class="fas fa-check-circle text-white text-lg" id="result-icon"></i>
                         </div>
                         <div class="text-right">
-                            <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">ผลลัพธ์ล่าสุด</p>
-                            <p class="text-sm font-bold text-slate-800 dark:text-white" id="last-result">-</p>
+                            <p class="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider font-semibold">Latest Result</p>
+                            <p class="text-sm font-medium text-slate-800 dark:text-white" id="last-result">-</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Performance Card -->
+                <div class="glass-card floating-card rounded-2xl p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="w-12 h-12 bg-gradient-to-r from-orange-500 to-red-500 rounded-xl flex items-center justify-center">
+                            <i class="fas fa-chart-line text-white text-lg"></i>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider font-semibold">Performance</p>
+                            <p class="text-sm font-medium text-slate-800 dark:text-white">98.5% Uptime</p>
                         </div>
                     </div>
                 </div>
@@ -410,63 +401,63 @@
             <!-- Control Panel -->
             <div class="glass-card rounded-3xl p-8 mb-8">
                 <div class="flex items-center mb-8">
-                    <div class="w-16 h-16 bg-gradient-to-r from-indigo-500 via-purple-600 to-pink-500 rounded-2xl flex items-center justify-center mr-4 shadow-xl">
-                        <i class="fas fa-play-circle text-white text-2xl icon-glow"></i>
+                    <div class="w-16 h-16 ai-gradient-bg rounded-2xl flex items-center justify-center mr-6 shadow-lg">
+                        <i class="fas fa-microchip text-white text-2xl"></i>
                     </div>
                     <div>
-                        <h2 class="text-3xl font-bold gradient-text">การควบคุม</h2>
-                        <p class="text-slate-600 dark:text-slate-400 text-lg">จัดการการทำงานของระบบอัจฉริยะ</p>
+                        <h2 class="text-3xl font-bold text-slate-800 dark:text-white">Neural Control Center</h2>
+                        <p class="text-slate-600 dark:text-slate-400 text-lg">Advanced AI-driven job market intelligence system</p>
                     </div>
                 </div>
                 
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
                     <button id="start-btn" onclick="startScraping()" 
-                            class="btn-primary text-white font-bold py-6 px-8 rounded-2xl flex items-center justify-center space-x-3 group text-lg shadow-xl">
+                            class="btn-primary text-white font-bold py-6 px-8 rounded-2xl flex items-center justify-center space-x-3 group text-lg shadow-lg">
                         <i class="fas fa-rocket group-hover:animate-bounce text-xl"></i>
-                        <span>เริ่มกวาดข้อมูล</span>
+                        <span>Launch AI Scraper</span>
                     </button>
                     
                     <button onclick="testConnections()" 
-                            class="bg-gradient-to-r from-green-500 via-emerald-600 to-green-700 hover:from-green-600 hover:to-emerald-800 text-white font-bold py-6 px-8 rounded-2xl transition-all duration-500 hover:shadow-2xl hover:shadow-green-500/30 flex items-center justify-center space-x-3 text-lg transform hover:scale-105">
-                        <i class="fas fa-plug text-xl"></i>
-                        <span>ทดสอบการเชื่อมต่อ</span>
+                            class="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-bold py-6 px-8 rounded-2xl transition-all duration-300 hover:shadow-xl hover:shadow-emerald-500/25 flex items-center justify-center space-x-3 text-lg">
+                        <i class="fas fa-network-wired text-xl"></i>
+                        <span>Test Connections</span>
                     </button>
                     
                     <button onclick="refreshStatus()" 
-                            class="bg-gradient-to-r from-slate-500 via-slate-600 to-slate-700 hover:from-slate-600 hover:to-slate-800 text-white font-bold py-6 px-8 rounded-2xl transition-all duration-500 hover:shadow-2xl flex items-center justify-center space-x-3 text-lg transform hover:scale-105">
+                            class="bg-gradient-to-r from-slate-600 to-slate-700 hover:from-slate-700 hover:to-slate-800 text-white font-bold py-6 px-8 rounded-2xl transition-all duration-300 hover:shadow-xl flex items-center justify-center space-x-3 text-lg">
                         <i class="fas fa-sync-alt text-xl"></i>
-                        <span>รีเฟรช</span>
+                        <span>Refresh Status</span>
                     </button>
                 </div>
 
-                <!-- Enhanced Progress Bar -->
+                <!-- Progress Bar -->
                 <div id="progress-container" class="hidden">
-                    <div class="bg-slate-200 dark:bg-slate-700 rounded-full h-4 mb-4 overflow-hidden shadow-inner">
-                        <div class="modern-progress h-full rounded-full animate-pulse transition-all duration-1000 shadow-lg" style="width: 100%"></div>
+                    <div class="bg-slate-200 dark:bg-slate-700 rounded-full h-4 mb-4 overflow-hidden">
+                        <div class="ai-gradient-bg h-full rounded-full animate-pulse transition-all duration-1000" style="width: 100%"></div>
                     </div>
-                    <p class="text-lg text-slate-600 dark:text-slate-400 text-center font-medium" id="progress-text"></p>
+                    <p class="text-sm text-slate-600 dark:text-slate-400 text-center font-medium" id="progress-text"></p>
                 </div>
             </div>
 
-            <!-- Recent Logs -->
+            <!-- Recent Activity -->
             <div class="glass-card rounded-3xl p-8">
                 <div class="flex items-center justify-between mb-8">
                     <div class="flex items-center">
-                        <div class="w-16 h-16 bg-gradient-to-r from-orange-400 via-red-500 to-pink-500 rounded-2xl flex items-center justify-center mr-4 shadow-xl">
-                            <i class="fas fa-terminal text-white text-2xl icon-glow"></i>
+                        <div class="w-16 h-16 bg-gradient-to-r from-violet-500 to-purple-600 rounded-2xl flex items-center justify-center mr-6 shadow-lg">
+                            <i class="fas fa-activity text-white text-2xl"></i>
                         </div>
                         <div>
-                            <h2 class="text-3xl font-bold gradient-text">System Logs</h2>
-                            <p class="text-slate-600 dark:text-slate-400 text-lg">กิจกรรมแบบเรียลไทม์</p>
+                            <h2 class="text-3xl font-bold text-slate-800 dark:text-white">Neural Activity Stream</h2>
+                            <p class="text-slate-600 dark:text-slate-400 text-lg">Real-time system intelligence logs</p>
                         </div>
                     </div>
-                    <button onclick="navigateTo('logs')" class="text-blue-600 hover:text-blue-800 dark:text-blue-400 text-lg font-bold hover:scale-105 transition-all">
-                        ดูทั้งหมด <i class="fas fa-arrow-right ml-2"></i>
+                    <button onclick="navigateTo('logs')" class="text-blue-600 hover:text-blue-800 dark:text-blue-400 text-sm font-bold hover:scale-105 transition-all">
+                        View All Logs <i class="fas fa-arrow-right ml-1"></i>
                     </button>
                 </div>
                 
-                <div id="logs-container" class="bg-slate-50 dark:bg-slate-800 rounded-2xl p-6 max-h-80 overflow-y-auto space-y-3 shadow-inner">
-                    <div class="text-lg text-slate-500 dark:text-slate-400 text-center py-8 font-medium">ยังไม่มี logs</div>
+                <div id="logs-container" class="bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-6 max-h-80 overflow-y-auto space-y-3">
+                    <div class="text-sm text-slate-500 dark:text-slate-400 text-center py-8 font-medium">Neural network initializing...</div>
                 </div>
             </div>
         </div>
@@ -476,45 +467,60 @@
             <div class="glass-card rounded-3xl p-8">
                 <div class="flex items-center justify-between mb-8">
                     <div>
-                        <h1 class="text-4xl font-bold gradient-text">ข้อมูลที่กวาดได้</h1>
-                        <p class="text-slate-600 dark:text-slate-400 mt-2 text-lg" id="data-summary">กำลังโหลดข้อมูล...</p>
+                        <h1 class="text-4xl font-bold text-slate-800 dark:text-white">Scraped Intelligence Data</h1>
+                        <p class="text-slate-600 dark:text-slate-400 mt-2 text-lg" id="data-summary">Loading neural data analysis...</p>
                     </div>
                     <div class="flex space-x-3">
-                        <button onclick="refreshData()" class="btn-primary text-white px-6 py-3 rounded-xl text-lg font-bold">
-                            <i class="fas fa-sync-alt mr-2"></i>รีเฟรช
+                        <button onclick="refreshData()" class="btn-primary text-white px-6 py-3 rounded-xl font-bold">
+                            <i class="fas fa-sync-alt mr-2"></i>Refresh Data
                         </button>
                     </div>
                 </div>
-                <div id="data-content">กำลังโหลด...</div>
+                <div id="data-content">
+                    <div class="text-center py-16">
+                        <i class="fas fa-brain text-6xl text-blue-500 mb-6 loading-brain"></i>
+                        <p class="text-xl text-slate-600 dark:text-slate-400">Processing neural networks...</p>
+                    </div>
+                </div>
             </div>
         </div>
 
         <!-- Settings Page -->
         <div id="settings-page" class="page-content hidden">
             <div class="glass-card rounded-3xl p-8">
-                <h1 class="text-4xl font-bold gradient-text mb-8">การตั้งค่า</h1>
-                <div id="settings-content">กำลังโหลด...</div>
+                <h1 class="text-4xl font-bold text-slate-800 dark:text-white mb-8">System Configuration</h1>
+                <div id="settings-content">
+                    <div class="text-center py-16">
+                        <i class="fas fa-cogs text-6xl text-purple-500 mb-6 loading-brain"></i>
+                        <p class="text-xl text-slate-600 dark:text-slate-400">Loading system parameters...</p>
+                    </div>
+                </div>
             </div>
         </div>
 
         <!-- Logs Page -->
         <div id="logs-page" class="page-content hidden">
             <div class="glass-card rounded-3xl p-8">
-                <h1 class="text-4xl font-bold gradient-text mb-8">System Logs</h1>
-                <div id="logs-content">กำลังโหลด...</div>
+                <h1 class="text-4xl font-bold text-slate-800 dark:text-white mb-8">Neural System Logs</h1>
+                <div id="logs-content">
+                    <div class="text-center py-16">
+                        <i class="fas fa-file-code text-6xl text-orange-500 mb-6 loading-brain"></i>
+                        <p class="text-xl text-slate-600 dark:text-slate-400">Compiling log data...</p>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- Enhanced Toast Notification -->
-    <div id="toast" class="fixed top-6 right-6 z-50 opacity-0 transition-all duration-500 transform translate-x-full scale-75">
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed top-4 right-4 z-50 opacity-0 transition-all duration-300 transform translate-y-2">
         <div class="glass-card rounded-2xl p-6 max-w-sm shadow-2xl">
             <div class="flex items-center">
                 <div class="flex-shrink-0">
                     <i id="toast-icon" class="fas fa-info-circle text-blue-500 text-xl"></i>
                 </div>
                 <div class="ml-4">
-                    <p id="toast-message" class="text-lg font-semibold text-slate-700 dark:text-slate-200"></p>
+                    <p id="toast-message" class="text-sm font-medium text-slate-700 dark:text-slate-200"></p>
                 </div>
             </div>
         </div>
@@ -523,6 +529,29 @@
     <script>
         let statusInterval;
         let currentPage = 'dashboard';
+
+        // Theme system
+        function setTheme(theme) {
+            const body = document.body;
+            body.className = body.className.replace(/theme-\w+/g, '');
+            if (theme !== 'default') {
+                body.classList.add(`theme-${theme}`);
+            }
+            
+            // Update active theme button
+            document.querySelectorAll('.theme-option').forEach(btn => btn.classList.remove('active'));
+            document.querySelector(`[data-theme="${theme}"]`).classList.add('active');
+            
+            localStorage.setItem('theme', theme);
+        }
+
+        // Initialize theme
+        document.querySelectorAll('.theme-option').forEach(btn => {
+            btn.addEventListener('click', () => setTheme(btn.dataset.theme));
+        });
+
+        const savedTheme = localStorage.getItem('theme') || 'default';
+        setTheme(savedTheme);
 
         // Dark mode toggle
         function toggleDarkMode() {
@@ -543,8 +572,8 @@
             document.getElementById(page + '-page').classList.remove('hidden');
             
             // Update nav buttons
-            document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active', 'bg-white/20'));
-            event.target.closest('.nav-btn').classList.add('active', 'bg-white/20');
+            document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.closest('.nav-btn').classList.add('active');
             
             currentPage = page;
             
@@ -570,22 +599,21 @@
             messageEl.textContent = message;
             
             const icons = {
-                'success': 'fa-check-circle text-green-500',
+                'success': 'fa-check-circle text-emerald-500',
                 'error': 'fa-exclamation-circle text-red-500',
                 'info': 'fa-info-circle text-blue-500',
-                'warning': 'fa-exclamation-triangle text-yellow-500'
+                'warning': 'fa-exclamation-triangle text-amber-500'
             };
             
-            icon.className = `fas ${icons[type] || icons.info} text-xl`;
+            icon.className = `fas ${icons[type] || icons.info}`;
             
-            // Show toast with enhanced animation
-            toast.classList.add('toast-enter');
-            toast.classList.remove('opacity-0', 'translate-x-full', 'scale-75');
-            toast.classList.add('opacity-100', 'translate-x-0', 'scale-100');
+            // Show toast
+            toast.classList.remove('opacity-0', 'translate-y-2');
+            toast.classList.add('opacity-100', 'translate-y-0');
             
             setTimeout(() => {
-                toast.classList.add('opacity-0', 'translate-x-full', 'scale-75');
-                toast.classList.remove('opacity-100', 'translate-x-0', 'scale-100', 'toast-enter');
+                toast.classList.add('opacity-0', 'translate-y-2');
+                toast.classList.remove('opacity-100', 'translate-y-0');
             }, 4000);
         }
 
@@ -594,7 +622,7 @@
             const originalContent = btn.innerHTML;
             
             btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-3 text-xl"></i><span>กำลังเริ่มต้น...</span>';
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-3 text-xl"></i><span>Initializing Neural Network...</span>';
 
             fetch('/api/start-scraping', {
                 method: 'POST',
@@ -603,23 +631,23 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    showToast(data.message, 'success');
+                    showToast('AI Neural Network Successfully Activated!', 'success');
                     startStatusPolling();
                 } else {
-                    showToast(data.message, 'error');
+                    showToast('Neural Network Activation Failed: ' + data.message, 'error');
                     btn.disabled = false;
                     btn.innerHTML = originalContent;
                 }
             })
             .catch(error => {
-                showToast('เกิดข้อผิดพลาด: ' + error.message, 'error');
+                showToast('System Error: ' + error.message, 'error');
                 btn.disabled = false;
                 btn.innerHTML = originalContent;
             });
         }
 
         function testConnections() {
-            showToast('กำลังทดสอบการเชื่อมต่อ...', 'info');
+            showToast('Running neural network diagnostics...', 'info');
             
             fetch('/api/test-connection', {
                 method: 'POST',
@@ -634,19 +662,19 @@
                         totalCount++;
                         if (result.status === 'success') successCount++;
                     });
-                    showToast(`ทดสอบเสร็จสิ้น: ${successCount}/${totalCount} สำเร็จ`, successCount === totalCount ? 'success' : 'warning');
+                    showToast(`Neural diagnostics complete: ${successCount}/${totalCount} systems operational`, successCount === totalCount ? 'success' : 'warning');
                 } else {
-                    showToast('การทดสอบล้มเหลว: ' + data.message, 'error');
+                    showToast('Diagnostic failure: ' + data.message, 'error');
                 }
             })
             .catch(error => {
-                showToast('เกิดข้อผิดพลาดในการทดสอบ: ' + error.message, 'error');
+                showToast('Diagnostic error: ' + error.message, 'error');
             });
         }
 
         function refreshStatus() {
             updateStatus();
-            showToast('รีเฟรชสถานะแล้ว', 'success');
+            showToast('Neural network status refreshed', 'success');
         }
 
         function startStatusPolling() {
@@ -670,7 +698,7 @@
             
             const btn = document.getElementById('start-btn');
             btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-rocket group-hover:animate-bounce text-xl"></i><span>เริ่มกวาดข้อมูล</span>';
+            btn.innerHTML = '<i class="fas fa-rocket group-hover:animate-bounce text-xl"></i><span>Launch AI Scraper</span>';
         }
 
         function updateStatus() {
@@ -681,19 +709,22 @@
                     const statusText = document.getElementById('status-text');
                     const statusDot = document.getElementById('status-dot');
                     const statusProgress = document.getElementById('status-progress');
+                    const aiStatus = document.getElementById('ai-status');
                     
                     if (data.is_running) {
-                        statusText.textContent = 'กำลังดำเนินการ...';
+                        statusText.textContent = 'Processing';
+                        aiStatus.textContent = 'Neural Network Active';
                         statusDot.classList.add('pulse-glow');
                         statusProgress.style.width = '100%';
                     } else {
-                        statusText.textContent = 'พร้อมใช้งาน';
+                        statusText.textContent = 'Ready';
+                        aiStatus.textContent = 'Neural Network Standby';
                         statusDot.classList.remove('pulse-glow');
                         statusProgress.style.width = '0%';
                     }
                     
                     // Update last run
-                    document.getElementById('last-run').textContent = data.last_run || 'ยังไม่เคยรัน';
+                    document.getElementById('last-run').textContent = data.last_run || 'Never executed';
                     
                     // Update last result
                     const resultEl = document.getElementById('last-result');
@@ -701,10 +732,10 @@
                     
                     if (data.last_result) {
                         resultEl.textContent = data.last_result;
-                        if (data.last_result.includes('สำเร็จ')) {
-                            resultIcon.className = 'fas fa-check-circle text-white text-xl icon-glow';
+                        if (data.last_result.includes('success') || data.last_result.includes('สำเร็จ')) {
+                            resultIcon.className = 'fas fa-check-circle text-white';
                         } else {
-                            resultIcon.className = 'fas fa-exclamation-circle text-white text-xl icon-glow';
+                            resultIcon.className = 'fas fa-exclamation-circle text-white';
                         }
                     }
                     
@@ -723,7 +754,7 @@
                     }
                 })
                 .catch(error => {
-                    console.error('Error updating status:', error);
+                    console.error('Neural network status update error:', error);
                 });
         }
 
@@ -732,81 +763,92 @@
             if (logs && logs.length > 0) {
                 const recentLogs = logs.slice(-5); // Show last 5 logs
                 container.innerHTML = recentLogs.map((log, index) => 
-                    `<div class="log-entry text-sm text-slate-600 dark:text-slate-300 font-mono p-4 bg-white dark:bg-slate-700 rounded-xl shadow-sm border-l-4 border-blue-500" style="animation-delay: ${index * 0.1}s">${log}</div>`
+                    `<div class="log-entry text-sm text-slate-600 dark:text-slate-300 mono p-4 bg-white/50 dark:bg-slate-700/50 rounded-xl backdrop-blur-sm" style="animation-delay: ${index * 0.1}s">${log}</div>`
                 ).join('');
                 container.scrollTop = container.scrollHeight;
             }
         }
 
         function loadDataPage() {
-            document.getElementById('data-content').innerHTML = '<div class="text-center py-12"><i class="fas fa-spinner fa-spin text-4xl text-blue-500 mb-6"></i><p class="text-xl font-medium">กำลังโหลดข้อมูล...</p></div>';
+            document.getElementById('data-content').innerHTML = `
+                <div class="text-center py-16">
+                    <i class="fas fa-brain text-6xl text-blue-500 mb-6 loading-brain"></i>
+                    <p class="text-xl text-slate-600 dark:text-slate-400">Processing neural data streams...</p>
+                </div>`;
             
             fetch('/data')
                 .then(response => response.text())
                 .then(html => {
                     const parser = new DOMParser();
                     const doc = parser.parseFromString(html, 'text/html');
-                    const content = doc.querySelector('.max-w-7xl').innerHTML;
+                    const content = doc.querySelector('.max-w-7xl')?.innerHTML || 'No data available';
                     document.getElementById('data-content').innerHTML = content;
                 })
                 .catch(error => {
-                    document.getElementById('data-content').innerHTML = '<div class="text-center py-12 text-red-500"><i class="fas fa-exclamation-triangle text-4xl mb-4"></i><p class="text-xl">เกิดข้อผิดพลาดในการโหลดข้อมูล</p></div>';
+                    document.getElementById('data-content').innerHTML = `
+                        <div class="text-center py-16">
+                            <i class="fas fa-exclamation-triangle text-6xl text-amber-500 mb-6"></i>
+                            <p class="text-xl text-slate-600 dark:text-slate-400">Neural data stream unavailable</p>
+                        </div>`;
                 });
         }
 
         function loadSettingsPage() {
-            document.getElementById('settings-content').innerHTML = '<div class="text-center py-12"><i class="fas fa-spinner fa-spin text-4xl text-blue-500 mb-6"></i><p class="text-xl font-medium">กำลังโหลดการตั้งค่า...</p></div>';
+            document.getElementById('settings-content').innerHTML = `
+                <div class="text-center py-16">
+                    <i class="fas fa-cogs text-6xl text-purple-500 mb-6 loading-brain"></i>
+                    <p class="text-xl text-slate-600 dark:text-slate-400">Loading neural parameters...</p>
+                </div>`;
             
             fetch('/settings')
                 .then(response => response.text())
                 .then(html => {
                     const parser = new DOMParser();
                     const doc = parser.parseFromString(html, 'text/html');
-                    const content = doc.querySelector('.max-w-4xl').innerHTML;
+                    const content = doc.querySelector('.max-w-4xl')?.innerHTML || 'Settings unavailable';
                     document.getElementById('settings-content').innerHTML = content;
                 })
                 .catch(error => {
-                    document.getElementById('settings-content').innerHTML = '<div class="text-center py-12 text-red-500"><i class="fas fa-exclamation-triangle text-4xl mb-4"></i><p class="text-xl">เกิดข้อผิดพลาดในการโหลดการตั้งค่า</p></div>';
+                    document.getElementById('settings-content').innerHTML = `
+                        <div class="text-center py-16">
+                            <i class="fas fa-exclamation-triangle text-6xl text-amber-500 mb-6"></i>
+                            <p class="text-xl text-slate-600 dark:text-slate-400">Neural configuration unavailable</p>
+                        </div>`;
                 });
         }
 
         function loadLogsPage() {
-            document.getElementById('logs-content').innerHTML = '<div class="text-center py-12"><i class="fas fa-spinner fa-spin text-4xl text-blue-500 mb-6"></i><p class="text-xl font-medium">กำลังโหลด logs...</p></div>';
+            document.getElementById('logs-content').innerHTML = `
+                <div class="text-center py-16">
+                    <i class="fas fa-file-code text-6xl text-orange-500 mb-6 loading-brain"></i>
+                    <p class="text-xl text-slate-600 dark:text-slate-400">Compiling neural log data...</p>
+                </div>`;
             
             fetch('/logs')
                 .then(response => response.text())
                 .then(html => {
                     const parser = new DOMParser();
                     const doc = parser.parseFromString(html, 'text/html');
-                    const content = doc.querySelector('.max-w-6xl').innerHTML;
+                    const content = doc.querySelector('.max-w-6xl')?.innerHTML || 'Logs unavailable';
                     document.getElementById('logs-content').innerHTML = content;
                 })
                 .catch(error => {
-                    document.getElementById('logs-content').innerHTML = '<div class="text-center py-12 text-red-500"><i class="fas fa-exclamation-triangle text-4xl mb-4"></i><p class="text-xl">เกิดข้อผิดพลาดในการโหลด logs</p></div>';
+                    document.getElementById('logs-content').innerHTML = `
+                        <div class="text-center py-16">
+                            <i class="fas fa-exclamation-triangle text-6xl text-amber-500 mb-6"></i>
+                            <p class="text-xl text-slate-600 dark:text-slate-400">Neural log system unavailable</p>
+                        </div>`;
                 });
         }
 
         function refreshData() {
-            showToast('กำลังรีเฟรชข้อมูล...', 'info');
-            loadDataPage();
+            if (currentPage === 'data') {
+                loadDataPage();
+            }
         }
 
-        // Initialize with enhanced loading
-        document.addEventListener('DOMContentLoaded', function() {
-            // Add loading animation to initial elements
-            const cards = document.querySelectorAll('.floating-card');
-            cards.forEach((card, index) => {
-                card.style.opacity = '0';
-                card.style.transform = 'translateY(50px)';
-                setTimeout(() => {
-                    card.style.transition = 'all 0.6s cubic-bezier(0.4, 0, 0.2, 1)';
-                    card.style.opacity = '1';
-                    card.style.transform = 'translateY(0)';
-                }, index * 200);
-            });
-            
-            updateStatus();
-        });
+        // Initialize
+        updateStatus();
         
         // Auto-refresh every 30 seconds when not actively scraping
         setInterval(() => {
@@ -815,11 +857,15 @@
             }
         }, 30000);
 
-        // Add smooth page transitions
-        window.addEventListener('beforeunload', function() {
-            document.body.style.opacity = '0';
-            document.body.style.transform = 'scale(0.95)';
-        });
+        // Add some initial animation on load
+        setTimeout(() => {
+            document.querySelectorAll('.floating-card').forEach((card, index) => {
+                setTimeout(() => {
+                    card.style.opacity = '1';
+                    card.style.transform = 'translateY(0)';
+                }, index * 100);
+            });
+        }, 500);
     </script>
 </body>
 </html>
