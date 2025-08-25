@@ -258,6 +258,61 @@
                 filter: brightness(1.2) hue-rotate(90deg);
             }
         }
+
+        /* Data Table Styles */
+        .data-table {
+            border-collapse: separate;
+            border-spacing: 0;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        .data-table th {
+            background: var(--ai-gradient);
+            color: white;
+            font-weight: 600;
+            text-align: left;
+            padding: 16px;
+            font-size: 14px;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .data-table td {
+            padding: 12px 16px;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            background: rgba(255, 255, 255, 0.8);
+            transition: background 0.3s ease;
+        }
+
+        .dark .data-table td {
+            background: rgba(15, 23, 42, 0.8);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .data-table tbody tr:hover td {
+            background: rgba(99, 102, 241, 0.05);
+        }
+
+        .dark .data-table tbody tr:hover td {
+            background: rgba(99, 102, 241, 0.1);
+        }
+
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(99, 102, 241, 0.2);
+            border-top: 4px solid #6366f1;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body class="bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-900 dark:via-slate-800 dark:to-indigo-900 min-h-screen transition-all duration-500">
@@ -474,12 +529,15 @@
                         <button onclick="refreshData()" class="btn-primary text-white px-6 py-3 rounded-xl font-bold">
                             <i class="fas fa-sync-alt mr-2"></i>Refresh Data
                         </button>
+                        <button onclick="exportData()" class="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white px-6 py-3 rounded-xl font-bold transition-all">
+                            <i class="fas fa-download mr-2"></i>Export CSV
+                        </button>
                     </div>
                 </div>
                 <div id="data-content">
                     <div class="text-center py-16">
-                        <i class="fas fa-brain text-6xl text-blue-500 mb-6 loading-brain"></i>
-                        <p class="text-xl text-slate-600 dark:text-slate-400">Processing neural networks...</p>
+                        <div class="loading-spinner mx-auto mb-6"></div>
+                        <p class="text-xl text-slate-600 dark:text-slate-400">Processing neural data streams...</p>
                     </div>
                 </div>
             </div>
@@ -492,7 +550,7 @@
                 <div id="settings-content">
                     <div class="text-center py-16">
                         <i class="fas fa-cogs text-6xl text-purple-500 mb-6 loading-brain"></i>
-                        <p class="text-xl text-slate-600 dark:text-slate-400">Loading system parameters...</p>
+                        <p class="text-xl text-slate-600 dark:text-slate-400">Loading neural parameters...</p>
                     </div>
                 </div>
             </div>
@@ -529,6 +587,11 @@
     <script>
         let statusInterval;
         let currentPage = 'dashboard';
+
+        // Google Sheets Configuration
+        const GOOGLE_SHEET_ID = '1U98CRxBxFD2ucnC0Ncxgw0Dx0Rt8HvCEKQuUo8zmOCY';
+        const SHEET_NAME = 'Master_Data';
+        const RANGE = 'D:AC'; // Columns D to AC
 
         // Theme system
         function setTheme(theme) {
@@ -615,6 +678,174 @@
                 toast.classList.add('opacity-0', 'translate-y-2');
                 toast.classList.remove('opacity-100', 'translate-y-0');
             }, 4000);
+        }
+
+        // Google Sheets Data Loading
+        async function loadGoogleSheetData() {
+            try {
+                const url = `https://docs.google.com/spreadsheets/d/${GOOGLE_SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${SHEET_NAME}&range=${RANGE}`;
+                
+                const response = await fetch(url);
+                if (!response.ok) {
+                    throw new Error('Failed to fetch data from Google Sheets');
+                }
+                
+                const csvText = await response.text();
+                const rows = csvText.split('\n').map(row => {
+                    // Simple CSV parsing - handle quoted fields
+                    const fields = [];
+                    let current = '';
+                    let inQuotes = false;
+                    
+                    for (let i = 0; i < row.length; i++) {
+                        const char = row[i];
+                        if (char === '"') {
+                            inQuotes = !inQuotes;
+                        } else if (char === ',' && !inQuotes) {
+                            fields.push(current.trim().replace(/^"|"$/g, ''));
+                            current = '';
+                        } else {
+                            current += char;
+                        }
+                    }
+                    fields.push(current.trim().replace(/^"|"$/g, ''));
+                    return fields;
+                }).filter(row => row.length > 1 && row.some(cell => cell.trim()));
+
+                return rows;
+            } catch (error) {
+                console.error('Error loading Google Sheets data:', error);
+                throw error;
+            }
+        }
+
+        function createDataTable(data) {
+            if (!data || data.length === 0) {
+                return '<div class="text-center py-16"><i class="fas fa-exclamation-triangle text-6xl text-amber-500 mb-6"></i><p class="text-xl text-slate-600 dark:text-slate-400">ไม่พบข้อมูล</p></div>';
+            }
+
+            const headers = data[0];
+            const rows = data.slice(1);
+
+            let html = `
+                <div class="mb-6 flex items-center justify-between">
+                    <div class="text-sm text-slate-600 dark:text-slate-400">
+                        พบข้อมูล ${rows.length} รายการ จาก Google Sheets
+                    </div>
+                    <div class="flex space-x-2">
+                        <input type="text" id="search-input" placeholder="ค้นหาข้อมูล..." 
+                               class="px-4 py-2 rounded-xl border border-slate-300 dark:border-slate-600 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all">
+                        <select id="rows-per-page" class="px-4 py-2 rounded-xl border border-slate-300 dark:border-slate-600 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm">
+                            <option value="10">10 รายการ</option>
+                            <option value="25" selected>25 รายการ</option>
+                            <option value="50">50 รายการ</option>
+                            <option value="100">100 รายการ</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="overflow-x-auto rounded-xl shadow-lg">
+                    <table class="data-table w-full">
+                        <thead>
+                            <tr>
+            `;
+
+            headers.forEach(header => {
+                html += `<th class="whitespace-nowrap">${header || 'ไม่ระบุ'}</th>`;
+            });
+
+            html += `
+                            </tr>
+                        </thead>
+                        <tbody id="table-body">
+            `;
+
+            rows.forEach((row, index) => {
+                html += '<tr>';
+                headers.forEach((_, colIndex) => {
+                    const cellValue = row[colIndex] || '';
+                    html += `<td class="whitespace-nowrap text-sm text-slate-800 dark:text-slate-200">${cellValue}</td>`;
+                });
+                html += '</tr>';
+            });
+
+            html += `
+                        </tbody>
+                    </table>
+                </div>
+                <div class="mt-6 flex items-center justify-between">
+                    <div id="pagination-info" class="text-sm text-slate-600 dark:text-slate-400"></div>
+                    <div id="pagination-controls" class="flex space-x-2"></div>
+                </div>
+            `;
+
+            return html;
+        }
+
+        function initializeTableFeatures() {
+            const searchInput = document.getElementById('search-input');
+            const rowsPerPage = document.getElementById('rows-per-page');
+            
+            if (searchInput) {
+                searchInput.addEventListener('input', handleSearch);
+            }
+            
+            if (rowsPerPage) {
+                rowsPerPage.addEventListener('change', handleRowsPerPageChange);
+            }
+        }
+
+        function handleSearch() {
+            // Simple search implementation
+            const searchTerm = document.getElementById('search-input').value.toLowerCase();
+            const tableBody = document.getElementById('table-body');
+            const rows = tableBody.getElementsByTagName('tr');
+            
+            Array.from(rows).forEach(row => {
+                const text = row.textContent.toLowerCase();
+                if (text.includes(searchTerm)) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        }
+
+        function handleRowsPerPageChange() {
+            // Pagination implementation would go here
+            console.log('Rows per page changed');
+        }
+
+        function exportData() {
+            showToast('กำลังเตรียมไฟล์สำหรับดาวน์โหลด...', 'info');
+            
+            loadGoogleSheetData()
+                .then(data => {
+                    if (data && data.length > 0) {
+                        const csvContent = data.map(row => 
+                            row.map(cell => `"${cell}"`).join(',')
+                        ).join('\n');
+                        
+                        const blob = new Blob(['\uFEFF' + csvContent], { 
+                            type: 'text/csv;charset=utf-8;' 
+                        });
+                        
+                        const link = document.createElement('a');
+                        const url = URL.createObjectURL(blob);
+                        link.setAttribute('href', url);
+                        link.setAttribute('download', `scraped_data_${new Date().toISOString().split('T')[0]}.csv`);
+                        link.style.visibility = 'hidden';
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                        
+                        showToast('ดาวน์โหลดไฟล์สำเร็จ!', 'success');
+                    } else {
+                        showToast('ไม่พบข้อมูลสำหรับดาวน์โหลด', 'warning');
+                    }
+                })
+                .catch(error => {
+                    showToast('เกิดข้อผิดพลาดในการดาวน์โหลด: ' + error.message, 'error');
+                });
         }
 
         function startScraping() {
@@ -772,24 +1003,33 @@
         function loadDataPage() {
             document.getElementById('data-content').innerHTML = `
                 <div class="text-center py-16">
-                    <i class="fas fa-brain text-6xl text-blue-500 mb-6 loading-brain"></i>
-                    <p class="text-xl text-slate-600 dark:text-slate-400">Processing neural data streams...</p>
+                    <div class="loading-spinner mx-auto mb-6"></div>
+                    <p class="text-xl text-slate-600 dark:text-slate-400">กำลังโหลดข้อมูลจาก Google Sheets...</p>
                 </div>`;
             
-            fetch('/data')
-                .then(response => response.text())
-                .then(html => {
-                    const parser = new DOMParser();
-                    const doc = parser.parseFromString(html, 'text/html');
-                    const content = doc.querySelector('.max-w-7xl')?.innerHTML || 'No data available';
-                    document.getElementById('data-content').innerHTML = content;
+            loadGoogleSheetData()
+                .then(data => {
+                    const tableHtml = createDataTable(data);
+                    document.getElementById('data-content').innerHTML = tableHtml;
+                    document.getElementById('data-summary').textContent = `พบข้อมูล ${data.length - 1} รายการจาก Google Sheets (${SHEET_NAME})`;
+                    
+                    // Initialize table features after content is loaded
+                    setTimeout(initializeTableFeatures, 100);
+                    
+                    showToast('โหลดข้อมูลจาก Google Sheets สำเร็จ!', 'success');
                 })
                 .catch(error => {
                     document.getElementById('data-content').innerHTML = `
                         <div class="text-center py-16">
-                            <i class="fas fa-exclamation-triangle text-6xl text-amber-500 mb-6"></i>
-                            <p class="text-xl text-slate-600 dark:text-slate-400">Neural data stream unavailable</p>
+                            <i class="fas fa-exclamation-triangle text-6xl text-red-500 mb-6"></i>
+                            <p class="text-xl text-slate-600 dark:text-slate-400 mb-4">ไม่สามารถโหลดข้อมูลได้</p>
+                            <p class="text-sm text-slate-500 dark:text-slate-400">${error.message}</p>
+                            <button onclick="loadDataPage()" class="mt-4 btn-primary text-white px-6 py-2 rounded-xl">
+                                <i class="fas fa-redo mr-2"></i>ลองใหม่
+                            </button>
                         </div>`;
+                    document.getElementById('data-summary').textContent = 'เกิดข้อผิดพลาดในการโหลดข้อมูล';
+                    showToast('ไม่สามารถโหลดข้อมูลจาก Google Sheets ได้: ' + error.message, 'error');
                 });
         }
 
@@ -869,4 +1109,3 @@
     </script>
 </body>
 </html>
-
