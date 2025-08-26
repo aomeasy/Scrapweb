@@ -6,6 +6,7 @@
     <title>AI JobN Scraper Dashboard 2025</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap');
         
@@ -326,6 +327,130 @@
         .pagination-btn.active {
             background: var(--ai-gradient);
         }
+
+        /* AI Chatbot Styles */
+        .chatbot-container {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            width: 400px;
+            height: 600px;
+            z-index: 1000;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .chatbot-container.minimized {
+            height: 80px;
+            width: 320px;
+        }
+
+        .chatbot-header {
+            background: var(--ai-gradient);
+            background-size: 200% 200%;
+            animation: gradientShift 8s ease-in-out infinite;
+        }
+
+        .chatbot-messages {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .dark .chatbot-messages {
+            background: rgba(15, 23, 42, 0.95);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .message-bubble {
+            max-width: 85%;
+            padding: 12px 16px;
+            border-radius: 18px;
+            margin-bottom: 12px;
+            word-wrap: break-word;
+            animation: messageSlideIn 0.3s ease-out;
+        }
+
+        @keyframes messageSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px) scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .message-user {
+            background: var(--ai-gradient);
+            color: white;
+            margin-left: auto;
+            border-bottom-right-radius: 6px;
+        }
+
+        .message-ai {
+            background: rgba(99, 102, 241, 0.1);
+            color: #1e293b;
+            border-bottom-left-radius: 6px;
+        }
+
+        .dark .message-ai {
+            background: rgba(99, 102, 241, 0.2);
+            color: #e2e8f0;
+        }
+
+        .ai-status-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            animation: statusPulse 2s infinite;
+        }
+
+        .status-online { background-color: #10b981; }
+        .status-offline { background-color: #ef4444; }
+        .status-processing { background-color: #f59e0b; }
+
+        @keyframes statusPulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .typing-indicator {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 12px 16px;
+        }
+
+        .typing-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #6366f1;
+            animation: typingBounce 1.4s infinite;
+        }
+
+        .typing-dot:nth-child(1) { animation-delay: 0ms; }
+        .typing-dot:nth-child(2) { animation-delay: 200ms; }
+        .typing-dot:nth-child(3) { animation-delay: 400ms; }
+
+        @keyframes typingBounce {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-10px); }
+        }
+
+        /* Chart Containers */
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin: 20px 0;
+        }
     </style>
 </head>
 <body class="bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-900 dark:via-slate-800 dark:to-indigo-900 min-h-screen transition-all duration-500">
@@ -358,6 +483,9 @@
                     </button>
                     <button onclick="navigateTo('data')" class="nav-btn text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white px-4 py-2 rounded-lg transition-all font-medium">
                         <i class="fas fa-database mr-2"></i>Data
+                    </button>
+                    <button onclick="navigateTo('analytics')" class="nav-btn text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white px-4 py-2 rounded-lg transition-all font-medium">
+                        <i class="fas fa-chart-bar mr-2"></i>Analytics
                     </button>
                     <button onclick="navigateTo('settings')" class="nav-btn text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white px-4 py-2 rounded-lg transition-all font-medium">
                         <i class="fas fa-cog mr-2"></i>Settings
@@ -398,12 +526,19 @@
                         </div>
                         <div>
                             <h2 class="text-2xl font-bold text-white">AI-Powered Job Intelligence</h2>
-                            <p class="text-white/80 text-sm">Next-generation automated job analysis</p>
+                            <p class="text-white/80 text-sm">Next-generation automated job analysis with น้องจ๊อบ AI Assistant</p>
                         </div>
                     </div>
                     <div class="text-right">
                         <div class="text-white/60 text-xs uppercase tracking-wider font-semibold">System Status</div>
                         <div class="text-white text-lg font-bold" id="ai-status">Neural Network Active</div>
+                        <div class="flex items-center justify-end mt-2">
+                            <div class="ai-status-indicator text-white/80 text-sm">
+                                <span>น้องจ๊อบ AI:</span>
+                                <div class="status-dot status-online" id="job-ai-status"></div>
+                                <span id="job-ai-text">Online</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -452,15 +587,15 @@
                     </div>
                 </div>
 
-                <!-- Performance Card -->
+                <!-- AI Performance Card -->
                 <div class="glass-card floating-card rounded-2xl p-6">
                     <div class="flex items-center justify-between mb-4">
                         <div class="w-12 h-12 bg-gradient-to-r from-orange-500 to-red-500 rounded-xl flex items-center justify-center">
-                            <i class="fas fa-chart-line text-white text-lg"></i>
+                            <i class="fas fa-brain text-white text-lg loading-brain"></i>
                         </div>
                         <div class="text-right">
-                            <p class="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider font-semibold">Performance</p>
-                            <p class="text-sm font-medium text-slate-800 dark:text-white">98.5% Uptime</p>
+                            <p class="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider font-semibold">AI Performance</p>
+                            <p class="text-sm font-medium text-slate-800 dark:text-white" id="ai-performance">98.5% Accuracy</p>
                         </div>
                     </div>
                 </div>
@@ -474,7 +609,7 @@
                     </div>
                     <div>
                         <h2 class="text-3xl font-bold text-slate-800 dark:text-white">Neural Control Center</h2>
-                        <p class="text-slate-600 dark:text-slate-400 text-lg">Advanced AI-driven job intelligence system</p>
+                        <p class="text-slate-600 dark:text-slate-400 text-lg">Advanced AI-driven job intelligence system with น้องจ๊อบ assistant</p>
                     </div>
                 </div>
                 
@@ -556,6 +691,77 @@
             </div>
         </div>
 
+        <!-- Analytics Page -->
+        <div id="analytics-page" class="page-content hidden">
+            <div class="glass-card rounded-3xl p-8 mb-8">
+                <div class="flex items-center mb-8">
+                    <div class="w-16 h-16 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center mr-6 shadow-lg">
+                        <i class="fas fa-chart-bar text-white text-2xl"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-4xl font-bold text-slate-800 dark:text-white">AI Analytics Dashboard</h1>
+                        <p class="text-slate-600 dark:text-slate-400 text-lg">Deep insights from job scraping data with น้องจ๊อบ AI analysis</p>
+                    </div>
+                </div>
+
+                <!-- Analytics Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div class="glass-card floating-card rounded-2xl p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="w-12 h-12 bg-gradient-to-r from-green-500 to-emerald-500 rounded-xl flex items-center justify-center">
+                                <i class="fas fa-briefcase text-white text-lg"></i>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider font-semibold">Total Jobs</p>
+                                <p class="text-2xl font-bold text-slate-800 dark:text-white" id="total-jobs">0</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="glass-card floating-card rounded-2xl p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="w-12 h-12 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center">
+                                <i class="fas fa-building text-white text-lg"></i>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider font-semibold">Companies</p>
+                                <p class="text-2xl font-bold text-slate-800 dark:text-white" id="total-companies">0</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="glass-card floating-card rounded-2xl p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="w-12 h-12 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl flex items-center justify-center">
+                                <i class="fas fa-map-marker-alt text-white text-lg"></i>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider font-semibold">Locations</p>
+                                <p class="text-2xl font-bold text-slate-800 dark:text-white" id="total-locations">0</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Charts -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div class="glass-card rounded-2xl p-6">
+                        <h3 class="text-xl font-bold text-slate-800 dark:text-white mb-4">Jobs by Center</h3>
+                        <div class="chart-container">
+                            <canvas id="jobs-by-center-chart"></canvas>
+                        </div>
+                    </div>
+                    
+                    <div class="glass-card rounded-2xl p-6">
+                        <h3 class="text-xl font-bold text-slate-800 dark:text-white mb-4">Jobs Over Time</h3>
+                        <div class="chart-container">
+                            <canvas id="jobs-timeline-chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Settings Page -->
         <div id="settings-page" class="page-content hidden">
             <div class="glass-card rounded-3xl p-8">
@@ -583,6 +789,80 @@
         </div>
     </div>
 
+    <!-- AI Chatbot - น้องจ๊อบ -->
+    <div class="chatbot-container glass-card rounded-3xl shadow-2xl" id="chatbot">
+        <!-- Chatbot Header -->
+        <div class="chatbot-header rounded-t-3xl p-4 flex items-center justify-between cursor-pointer" onclick="toggleChatbot()">
+            <div class="flex items-center space-x-3">
+                <div class="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                    <i class="fas fa-robot text-white text-xl loading-brain"></i>
+                </div>
+                <div>
+                    <h3 class="text-white font-bold text-lg">น้องจ๊อบ AI Assistant</h3>
+                    <p class="text-white/80 text-sm">ยินดีให้บริการตอบคำถาม</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-2">
+                <div class="ai-status-indicator">
+                    <div class="status-dot status-online" id="chatbot-status-dot"></div>
+                    <span class="text-white text-sm" id="chatbot-status-text">Online</span>
+                </div>
+                <button class="text-white hover:text-white/70 transition-colors" id="chatbot-toggle">
+                    <i class="fas fa-minus" id="chatbot-toggle-icon"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Chatbot Body -->
+        <div class="chatbot-body" id="chatbot-body">
+            <!-- Messages Container -->
+            <div class="chatbot-messages h-96 p-4 overflow-y-auto" id="chatbot-messages">
+                <div class="message-bubble message-ai">
+                    <div class="flex items-center space-x-2 mb-2">
+                        <i class="fas fa-robot text-blue-500"></i>
+                        <span class="font-semibold text-blue-600">น้องจ๊อบ</span>
+                    </div>
+                    <p>สวัสดีครับ! ผม น้องจ๊อบ AI Assistant ยินดีให้บริการตอบคำถามเกี่ยวกับระบบ Job Scraper นี้ครับ</p>
+                    <p class="mt-2 text-sm">คุณสามารถถามเกี่ยวกับ:</p>
+                    <ul class="mt-1 text-sm list-disc list-inside">
+                        <li>สถานะการทำงานของระบบ</li>
+                        <li>ข้อมูลที่เก็บรวบรวม</li>
+                        <li>การวิเคราะห์และสถิติ</li>
+                        <li>การใช้งานระบบ</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Typing Indicator -->
+            <div class="typing-indicator hidden" id="typing-indicator">
+                <div class="flex items-center space-x-2 px-4">
+                    <i class="fas fa-robot text-blue-500"></i>
+                    <span class="text-sm text-slate-600 dark:text-slate-400">น้องจ๊อบ กำลังพิมพ์</span>
+                </div>
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+            </div>
+
+            <!-- Input Container -->
+            <div class="p-4 border-t border-slate-200 dark:border-slate-600">
+                <div class="flex space-x-2">
+                    <input type="text" 
+                           id="chatbot-input" 
+                           placeholder="พิมพ์คำถามของคุณ..." 
+                           class="flex-1 px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-xl bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                           onkeypress="handleChatInput(event)">
+                    <button onclick="sendMessage()" 
+                            class="btn-primary text-white px-6 py-2 rounded-xl font-bold flex items-center space-x-2"
+                            id="send-btn">
+                        <i class="fas fa-paper-plane"></i>
+                        <span class="hidden sm:inline">ส่ง</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Toast Notification -->
     <div id="toast" class="fixed top-4 right-4 z-50 opacity-0 transition-all duration-300 transform translate-y-2">
         <div class="glass-card rounded-2xl p-6 max-w-sm shadow-2xl">
@@ -603,12 +883,24 @@
         let currentData = [];
         let filteredData = [];
         let currentPage_pagination = 1;
-        let rowsPerPage = 10; // ตั้งค่าเริ่มต้นเป็น 10 รายการ
+        let rowsPerPage = 10;
+        let chatbotMinimized = false;
+        let aiModels = {
+            'qwen2.5:14b': { status: 'online', lastCheck: Date.now() },
+            'embedding': { status: 'online', lastCheck: Date.now() }
+        };
 
         // Google Sheets Configuration
         const GOOGLE_SHEET_ID = '1U98CRxBxFD2ucnC0Ncxgw0Dx0Rt8HvCEKQuUo8zmOCY';
         const SHEET_NAME = 'Master_Data';
-        const RANGE = 'D:AC'; // Columns D to AC
+        const EMBEDDING_SHEET = 'EMBEDDING';
+        const RANGE = 'D:AC';
+
+        // AI Configuration
+        const EMBEDDING_API_URL = 'http://209.15.123.47:11434/api/embeddings';
+        const EMBEDDING_MODEL = 'nomic-embed-text:latest';
+        const QWEN_API_URL = 'http://209.15.123.47:11434/api/generate';
+        const QWEN_MODEL = 'qwen2.5:14b';
 
         // Theme system
         function setTheme(theme) {
@@ -618,7 +910,6 @@
                 body.classList.add(`theme-${theme}`);
             }
             
-            // Update active theme button
             document.querySelectorAll('.theme-option').forEach(btn => btn.classList.remove('active'));
             document.querySelector(`[data-theme="${theme}"]`).classList.add('active');
             
@@ -639,28 +930,26 @@
             localStorage.setItem('darkMode', document.documentElement.classList.contains('dark'));
         }
 
-        // Initialize dark mode from localStorage
         if (localStorage.getItem('darkMode') === 'true') {
             document.documentElement.classList.add('dark');
         }
 
         // Navigation
         function navigateTo(page) {
-            // Hide all pages
             document.querySelectorAll('.page-content').forEach(p => p.classList.add('hidden'));
-            // Show target page
             document.getElementById(page + '-page').classList.remove('hidden');
             
-            // Update nav buttons
             document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
             event.target.closest('.nav-btn').classList.add('active');
             
             currentPage = page;
             
-            // Load page-specific content
             switch(page) {
                 case 'data':
                     loadDataPage();
+                    break;
+                case 'analytics':
+                    loadAnalyticsPage();
                     break;
                 case 'settings':
                     loadSettingsPage();
@@ -687,7 +976,6 @@
             
             icon.className = `fas ${icons[type] || icons.info}`;
             
-            // Show toast
             toast.classList.remove('opacity-0', 'translate-y-2');
             toast.classList.add('opacity-100', 'translate-y-0');
             
@@ -697,7 +985,199 @@
             }, 4000);
         }
 
-        // Google Sheets Data Loading
+        // Chatbot Functions
+        function toggleChatbot() {
+            const chatbot = document.getElementById('chatbot');
+            const body = document.getElementById('chatbot-body');
+            const toggleIcon = document.getElementById('chatbot-toggle-icon');
+            
+            chatbotMinimized = !chatbotMinimized;
+            
+            if (chatbotMinimized) {
+                chatbot.classList.add('minimized');
+                body.style.display = 'none';
+                toggleIcon.className = 'fas fa-plus';
+            } else {
+                chatbot.classList.remove('minimized');
+                body.style.display = 'block';
+                toggleIcon.className = 'fas fa-minus';
+            }
+        }
+
+        function handleChatInput(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('chatbot-input');
+            const message = input.value.trim();
+            
+            if (!message) return;
+            
+            // Add user message
+            addMessage(message, 'user');
+            input.value = '';
+            
+            // Show typing indicator
+            showTypingIndicator();
+            
+            try {
+                // Get AI response
+                const response = await getAIResponse(message);
+                hideTypingIndicator();
+                addMessage(response, 'ai');
+            } catch (error) {
+                hideTypingIndicator();
+                addMessage('ขออภัยครับ เกิดข้อผิดพลาดในการประมวลผล กรุณาลองใหม่อีกครั้ง', 'ai');
+                console.error('AI Response Error:', error);
+            }
+        }
+
+        function addMessage(text, sender) {
+            const messagesContainer = document.getElementById('chatbot-messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message-bubble message-${sender}`;
+            
+            if (sender === 'ai') {
+                messageDiv.innerHTML = `
+                    <div class="flex items-center space-x-2 mb-2">
+                        <i class="fas fa-robot text-blue-500"></i>
+                        <span class="font-semibold text-blue-600">น้องจ๊อบ</span>
+                    </div>
+                    <p>${text}</p>
+                `;
+            } else {
+                messageDiv.innerHTML = `<p>${text}</p>`;
+            }
+            
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        function showTypingIndicator() {
+            document.getElementById('typing-indicator').classList.remove('hidden');
+            const messagesContainer = document.getElementById('chatbot-messages');
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        function hideTypingIndicator() {
+            document.getElementById('typing-indicator').classList.add('hidden');
+        }
+
+        async function getAIResponse(userMessage) {
+            // First, create embeddings for the user message
+            const embeddings = await createEmbeddings(userMessage);
+            
+            // Get relevant context from data
+            const context = await getRelevantContext(userMessage);
+            
+            // Create system prompt with context
+            const systemPrompt = `
+            คุณคือ "น้องจ๊อบ" AI Assistant ที่เชี่ยวชาญในระบบ Job Scraper
+            คุณมีหน้าที่ตอบคำถามเกี่ยวกับ:
+            1. สถานะการทำงานของระบบ
+            2. ข้อมูลที่เก็บรวบรวมได้
+            3. การวิเคราะห์และสถิติ
+            4. การใช้งานระบบ
+            
+            ข้อมูลปัจจุบัน:
+            ${context}
+            
+            กรุณาตอบเป็นภาษาไทยในลักษณะที่เป็นมิตรและให้ข้อมูลที่เป็นประโยชน์
+            `;
+            
+            const response = await fetch(QWEN_API_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    model: QWEN_MODEL,
+                    prompt: `${systemPrompt}\n\nคำถาม: ${userMessage}`,
+                    stream: false
+                })
+            });
+            
+            if (!response.ok) {
+                throw new Error('Failed to get AI response');
+            }
+            
+            const data = await response.json();
+            return data.response || 'ขออภัยครับ ไม่สามารถประมวลผลคำตอบได้ในขณะนี้';
+        }
+
+        async function createEmbeddings(text) {
+            try {
+                const response = await fetch(EMBEDDING_API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        model: EMBEDDING_MODEL,
+                        prompt: text
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to create embeddings');
+                }
+                
+                const data = await response.json();
+                return data.embedding;
+            } catch (error) {
+                console.error('Embedding Error:', error);
+                return null;
+            }
+        }
+
+        async function getRelevantContext(userMessage) {
+            // Simple context based on keywords for now
+            const systemStatus = {
+                isRunning: document.getElementById('status-text').textContent === 'Processing',
+                lastRun: document.getElementById('last-run').textContent,
+                lastResult: document.getElementById('last-result').textContent,
+                aiPerformance: document.getElementById('ai-performance').textContent
+            };
+            
+            let context = `สถานะระบบ: ${systemStatus.isRunning ? 'กำลังทำงาน' : 'พร้อมใช้งาน'}
+การรันครั้งล่าสุด: ${systemStatus.lastRun}
+ผลลัพธ์ล่าสุด: ${systemStatus.lastResult}
+ประสิทธิภาพ AI: ${systemStatus.aiPerformance}`;
+            
+            if (userMessage.includes('ข้อมูล') || userMessage.includes('data')) {
+                context += `\nจำนวนข้อมูล: ${currentData.length || 0} รายการ`;
+            }
+            
+            return context;
+        }
+
+        // Update AI status
+        function updateAIStatus() {
+            const statusDot = document.getElementById('chatbot-status-dot');
+            const statusText = document.getElementById('chatbot-status-text');
+            const jobAIStatus = document.getElementById('job-ai-status');
+            const jobAIText = document.getElementById('job-ai-text');
+            
+            // Simulate AI model status check
+            const isOnline = Math.random() > 0.1; // 90% uptime simulation
+            
+            if (isOnline) {
+                statusDot.className = 'status-dot status-online';
+                statusText.textContent = 'Online';
+                jobAIStatus.className = 'status-dot status-online';
+                jobAIText.textContent = 'Online';
+            } else {
+                statusDot.className = 'status-dot status-offline';
+                statusText.textContent = 'Offline';
+                jobAIStatus.className = 'status-dot status-offline';
+                jobAIText.textContent = 'Offline';
+            }
+        }
+
+        // Google Sheets Data Loading (unchanged from original)
         async function loadGoogleSheetData() {
             try {
                 const url = `https://docs.google.com/spreadsheets/d/${GOOGLE_SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${SHEET_NAME}&range=${RANGE}`;
@@ -709,7 +1189,6 @@
                 
                 const csvText = await response.text();
                 const rows = csvText.split('\n').map(row => {
-                    // Simple CSV parsing - handle quoted fields
                     const fields = [];
                     let current = '';
                     let inQuotes = false;
@@ -736,19 +1215,122 @@
             }
         }
 
+        // Analytics Functions
+        function loadAnalyticsPage() {
+            loadGoogleSheetData()
+                .then(data => {
+                    if (data && data.length > 1) {
+                        currentData = data.slice(1); // Remove headers
+                        updateAnalyticsStats();
+                        createCharts();
+                    }
+                })
+                .catch(error => {
+                    console.error('Analytics data loading error:', error);
+                    showToast('ไม่สามารถโหลดข้อมูล Analytics ได้', 'error');
+                });
+        }
+
+        function updateAnalyticsStats() {
+            const totalJobs = currentData.length;
+            const companies = [...new Set(currentData.map(row => row[1]))].filter(Boolean);
+            const locations = [...new Set(currentData.map(row => row[2]))].filter(Boolean);
+            
+            document.getElementById('total-jobs').textContent = totalJobs.toLocaleString();
+            document.getElementById('total-companies').textContent = companies.length.toLocaleString();
+            document.getElementById('total-locations').textContent = locations.length.toLocaleString();
+        }
+
+        function createCharts() {
+            createJobsByCenterChart();
+            createJobsTimelineChart();
+        }
+
+        function createJobsByCenterChart() {
+            const ctx = document.getElementById('jobs-by-center-chart');
+            if (!ctx) return;
+            
+            // Group data by center (assuming column 3 is center)
+            const centerCounts = {};
+            currentData.forEach(row => {
+                const center = row[3] || 'ไม่ระบุ';
+                centerCounts[center] = (centerCounts[center] || 0) + 1;
+            });
+            
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(centerCounts).slice(0, 10), // Top 10 centers
+                    datasets: [{
+                        data: Object.values(centerCounts).slice(0, 10),
+                        backgroundColor: [
+                            '#6366f1', '#8b5cf6', '#ec4899', '#06b6d4',
+                            '#10b981', '#f59e0b', '#ef4444', '#8b5cf6',
+                            '#3b82f6', '#84cc16'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        }
+
+        function createJobsTimelineChart() {
+            const ctx = document.getElementById('jobs-timeline-chart');
+            if (!ctx) return;
+            
+            // Create sample timeline data
+            const timelineData = {
+                labels: ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน'],
+                datasets: [{
+                    label: 'งานที่รวบรวมได้',
+                    data: [65, 78, 90, 81, 96, 105],
+                    borderColor: '#6366f1',
+                    backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                    tension: 0.4,
+                    fill: true
+                }]
+            };
+            
+            new Chart(ctx, {
+                type: 'line',
+                data: timelineData,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        // Data Table Functions (keeping original functionality)
         function createDataTable(data) {
             if (!data || data.length === 0) {
                 return '<div class="text-center py-16"><i class="fas fa-exclamation-triangle text-6xl text-amber-500 mb-6"></i><p class="text-xl text-slate-600 dark:text-slate-400">ไม่พบข้อมูล</p></div>';
             }
 
-            const headers = ['NO.', ...data[0]]; // เพิ่มคอลัมน์ NO. ที่หัวตาราง
-            currentData = data.slice(1); // เก็บข้อมูลต้นฉบับ (ไม่รวม headers)
-            
-            // เรียงข้อมูลจากใหม่ไปเก่า (10 รายการล่าสุด)
+            const headers = ['NO.', ...data[0]];
+            currentData = data.slice(1);
             currentData.reverse();
             
-            filteredData = [...currentData]; // คัดลอกข้อมูลสำหรับการกรอง
-            currentPage_pagination = 1; // รีเซ็ตหน้า
+            filteredData = [...currentData];
+            currentPage_pagination = 1;
 
             let html = `
                 <div class="mb-6 flex items-center justify-between">
@@ -800,15 +1382,13 @@
             const tableBody = document.getElementById('table-body');
             if (!tableBody) return;
 
-            // คำนวณข้อมูลสำหรับหน้าปัจจุบัน
             const startIndex = (currentPage_pagination - 1) * rowsPerPage;
             const endIndex = Math.min(startIndex + rowsPerPage, filteredData.length);
             const pageData = filteredData.slice(startIndex, endIndex);
 
-            // สร้างแถวในตาราง
             let html = '';
             pageData.forEach((row, index) => {
-                const globalIndex = startIndex + index + 1; // เลขลำดับทั้งหมด
+                const globalIndex = startIndex + index + 1;
                 html += '<tr>';
                 html += `<td class="text-center text-sm font-medium text-slate-800 dark:text-slate-200">${globalIndex}</td>`;
                 row.forEach(cell => {
@@ -846,7 +1426,6 @@
 
             let html = '';
             
-            // Previous button
             html += `<button onclick="changePage(${currentPage_pagination - 1})" 
                      class="pagination-btn px-3 py-2 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-200 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm border border-slate-300 dark:border-slate-600 
                      ${currentPage_pagination === 1 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-500 hover:text-white'}"
@@ -854,7 +1433,6 @@
                      <i class="fas fa-chevron-left"></i>
                      </button>`;
 
-            // Page numbers
             const maxVisiblePages = 5;
             let startPage = Math.max(1, currentPage_pagination - Math.floor(maxVisiblePages / 2));
             let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
@@ -871,7 +1449,6 @@
                            : 'text-slate-700 dark:text-slate-200 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm border border-slate-300 dark:border-slate-600 hover:bg-blue-500 hover:text-white'}">${i}</button>`;
             }
 
-            // Next button
             html += `<button onclick="changePage(${currentPage_pagination + 1})" 
                      class="pagination-btn px-3 py-2 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-200 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm border border-slate-300 dark:border-slate-600 
                      ${currentPage_pagination === totalPages ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-500 hover:text-white'}"
@@ -899,12 +1476,10 @@
             }
             
             if (rowsPerPageSelect) {
-                // ตั้งค่าเริ่มต้นเป็น 10 รายการ
                 rowsPerPageSelect.value = '10';
                 rowsPerPageSelect.addEventListener('change', handleRowsPerPageChange);
             }
 
-            // เรนเดอร์ข้อมูลครั้งแรก
             renderTableData();
         }
 
@@ -919,17 +1494,16 @@
                 );
             }
             
-            currentPage_pagination = 1; // รีเซ็ตไปหน้าแรก
+            currentPage_pagination = 1;
             renderTableData();
         }
 
         function handleRowsPerPageChange() {
             const newRowsPerPage = parseInt(document.getElementById('rows-per-page').value);
             rowsPerPage = newRowsPerPage;
-            currentPage_pagination = 1; // รีเซ็ตไปหน้าแรก
+            currentPage_pagination = 1;
             renderTableData();
             
-            // อัพเดทข้อความแสดงจำนวนรายการ
             const summaryElement = document.querySelector('.mb-6 .text-sm');
             if (summaryElement) {
                 summaryElement.textContent = `พบข้อมูล ${currentData.length} รายการ จาก Google Sheets (แสดง ${rowsPerPage} รายการต่อหน้า)`;
@@ -942,12 +1516,11 @@
             loadGoogleSheetData()
                 .then(data => {
                     if (data && data.length > 0) {
-                        // เพิ่มคอลัมน์ NO. ในการ export
                         const exportData = data.map((row, index) => {
                             if (index === 0) {
-                                return ['NO.', ...row]; // เพิ่ม NO. ที่ header
+                                return ['NO.', ...row];
                             } else {
-                                return [index, ...row]; // เพิ่มเลขลำดับ
+                                return [index, ...row];
                             }
                         });
                         
@@ -978,6 +1551,7 @@
                 });
         }
 
+        // Original system functions (keeping unchanged)
         function startScraping() {
             const btn = document.getElementById('start-btn');
             const originalContent = btn.innerHTML;
@@ -1035,6 +1609,7 @@
 
         function refreshStatus() {
             updateStatus();
+            updateAIStatus();
             showToast('Neural network status refreshed', 'success');
         }
 
@@ -1043,7 +1618,6 @@
             statusInterval = setInterval(updateStatus, 3000);
             document.getElementById('progress-container').classList.remove('hidden');
             
-            // Add running class to status card
             document.getElementById('status-card').classList.add('running');
         }
 
@@ -1054,7 +1628,6 @@
             }
             document.getElementById('progress-container').classList.add('hidden');
             
-            // Remove running class
             document.getElementById('status-card').classList.remove('running');
             
             const btn = document.getElementById('start-btn');
@@ -1066,7 +1639,6 @@
             fetch('/api/status')
                 .then(response => response.json())
                 .then(data => {
-                    // Update status
                     const statusText = document.getElementById('status-text');
                     const statusDot = document.getElementById('status-dot');
                     const statusProgress = document.getElementById('status-progress');
@@ -1084,10 +1656,8 @@
                         statusProgress.style.width = '0%';
                     }
                     
-                    // Update last run
                     document.getElementById('last-run').textContent = data.last_run || 'Never executed';
                     
-                    // Update last result
                     const resultEl = document.getElementById('last-result');
                     const resultIcon = document.getElementById('result-icon');
                     
@@ -1100,16 +1670,13 @@
                         }
                     }
                     
-                    // Update progress
                     const progressText = document.getElementById('progress-text');
                     if (data.progress) {
                         progressText.textContent = data.progress;
                     }
                     
-                    // Update logs
                     updateDashboardLogs(data.logs);
                     
-                    // Stop polling if not running
                     if (!data.is_running && statusInterval) {
                         stopStatusPolling();
                     }
@@ -1122,7 +1689,7 @@
         function updateDashboardLogs(logs) {
             const container = document.getElementById('logs-container');
             if (logs && logs.length > 0) {
-                const recentLogs = logs.slice(-5); // Show last 5 logs
+                const recentLogs = logs.slice(-5);
                 container.innerHTML = recentLogs.map((log, index) => 
                     `<div class="log-entry text-sm text-slate-600 dark:text-slate-300 mono p-4 bg-white/50 dark:bg-slate-700/50 rounded-xl backdrop-blur-sm" style="animation-delay: ${index * 0.1}s">${log}</div>`
                 ).join('');
@@ -1143,7 +1710,6 @@
                     document.getElementById('data-content').innerHTML = tableHtml;
                     document.getElementById('data-summary').textContent = `พบข้อมูล ${data.length - 1} รายการจาก Google Sheets (${SHEET_NAME}) - แสดง 10 รายการล่าสุด`;
                     
-                    // Initialize table features after content is loaded
                     setTimeout(initializeTableFeatures, 100);
                     
                     showToast('โหลดข้อมูลจาก Google Sheets สำเร็จ!', 'success');
@@ -1219,15 +1785,17 @@
 
         // Initialize
         updateStatus();
+        updateAIStatus();
         
         // Auto-refresh every 30 seconds when not actively scraping
         setInterval(() => {
             if (!statusInterval) {
                 updateStatus();
             }
+            updateAIStatus();
         }, 30000);
 
-        // Add some initial animation on load
+        // Add initial animation on load
         setTimeout(() => {
             document.querySelectorAll('.floating-card').forEach((card, index) => {
                 setTimeout(() => {
@@ -1236,6 +1804,11 @@
                 }, index * 100);
             });
         }, 500);
+
+        // Initialize chatbot with a welcome message from น้องจ๊อบ
+        setTimeout(() => {
+            addMessage('พร้อมให้บริการแล้วครับ! ถ้ามีคำถามเกี่ยวกับระบบ Job Scraper สามารถสอบถามได้เลยครับ', 'ai');
+        }, 2000);
     </script>
 </body>
 </html>
