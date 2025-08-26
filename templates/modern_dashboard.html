@@ -1069,22 +1069,23 @@
         async function getAIResponse(userMessage) {
             try {
                 // Try to get AI response from external API first
-                const response = await Promise.race([
-                    fetch(QWEN_API_URL, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            model: QWEN_MODEL,
-                            prompt: `คุณคือ "น้องจ๊อบ" AI Assistant ที่เชี่ยวชาญในระบบ Job Scraper กรุณาตอบคำถาม: ${userMessage}`,
-                            stream: false
-                        })
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 5000);
+                
+                const response = await fetch(QWEN_API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        model: QWEN_MODEL,
+                        prompt: `คุณคือ "น้องจ๊อบ" AI Assistant ที่เชี่ยวชาญในระบบ Job Scraper กรุณาตอบคำถาม: ${userMessage}`,
+                        stream: false
                     }),
-                    new Promise((_, reject) => 
-                        setTimeout(() => reject(new Error('API Timeout')), 5000)
-                    )
-                ]);
+                    signal: controller.signal
+                });
+                
+                clearTimeout(timeoutId);
                 
                 if (response.ok) {
                     const data = await response.json();
@@ -1095,7 +1096,19 @@
                     }
                 }
             } catch (error) {
-                console.log('External AI API unavailable, using fallback:', error.message);
+                console.log('External AI API error:', {
+                    message: error.message,
+                    name: error.name,
+                    type: typeof error
+                });
+                
+                // Check specific error types
+                if (error.name === 'TypeError' && error.message.includes('fetch')) {
+                    console.log('CORS or Network error detected');
+                } else if (error.name === 'AbortError') {
+                    console.log('Request timeout after 5 seconds');
+                }
+                
                 // Update AI status to offline
                 updateAIStatusIndicator('offline');
             }
@@ -1103,7 +1116,8 @@
             // Fallback to local AI responses
             return getLocalAIResponse(userMessage);
         }
-function getLocalAIResponse(userMessage) {
+
+        function getLocalAIResponse(userMessage) {
             const context = getSystemContext();
             const lowerMessage = userMessage.toLowerCase();
             
