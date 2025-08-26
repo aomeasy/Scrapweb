@@ -39,8 +39,12 @@ class Config:
     INDEX_URL = f"{BASE_URL}/pages/index"
     TABS_TO_SCRAPE: List[int] = [13, 14, 15, 8, 7, 11]
     TAB_NAMES: Dict[int, str] = {
-        13: "InProgress_Jobs", 14: "Pending_Jobs", 15: "Completed_Jobs",
-        8: "Urgent_Jobs", 7: "Review_Jobs", 11: "Archive_Jobs"
+        13: "งานใหม่_แจ้งศูนย์อื่น",
+        14: "อยู่ระหว่างดำเนินการ_แจ้งศูนย์อื่น", 
+        15: "รอตรวจสอบ_แจ้งศูนย์อื่น",
+        8: "งานใหม่_ภายในศูนย์",
+        7: "อยู่ระหว่างดำเนินการ_ภายในศูนย์",
+        11: "งานเสร็จ_ภายในศูนย์"
     }
 
     # Credentials (from Environment Variables)
@@ -132,6 +136,48 @@ class GoogleSheetManager:
         except Exception as e:
             logger.error(f"❌ Could not fetch existing Job_Nos from '{worksheet_name}': {e}")
             return set()
+    
+    def get_job_data_with_positions(self, worksheet_name: str) -> Dict[str, Dict]:
+        """ดึงข้อมูล Job_No พร้อมตำแหน่งแถวและคอลัมน์ Status"""
+        try:
+            ws = self.get_or_create_worksheet(worksheet_name)
+            all_data = ws.get_all_records()
+            headers = ws.row_values(1)
+            
+            # หา index ของคอลัมน์ Job_No และ Source_Tab
+            job_no_col_idx = None
+            source_tab_col_idx = None
+            
+            for idx, header in enumerate(headers):
+                if 'job' in str(header).lower() and 'no' in str(header).lower():
+                    job_no_col_idx = idx + 1  # gspread uses 1-based indexing
+                elif header == 'Source_Tab':
+                    source_tab_col_idx = idx + 1
+            
+            job_positions = {}
+            for row_idx, row_data in enumerate(all_data, start=2):  # start=2 เพราะแถว 1 คือ header
+                job_no = str(row_data.get('Job_No', '')).strip() if 'Job_No' in row_data else ''
+                if job_no:
+                    job_positions[job_no] = {
+                        'row': row_idx,
+                        'source_tab_col': source_tab_col_idx,
+                        'current_status': row_data.get('Source_Tab', '')
+                    }
+            
+            logger.info(f"Found {len(job_positions)} existing jobs with positions in '{worksheet_name}'.")
+            return job_positions
+        except Exception as e:
+            logger.error(f"❌ Could not fetch job data with positions from '{worksheet_name}': {e}")
+            return {}
+    
+    def update_job_status(self, worksheet_name: str, job_no: str, new_status: str, row: int, col: int):
+        """อัปเดตสถานะของงานที่มีอยู่แล้ว"""
+        try:
+            ws = self.get_or_create_worksheet(worksheet_name)
+            ws.update_cell(row, col, new_status)
+            logger.info(f"✅ Updated {job_no} status to '{new_status}' at row {row}")
+        except Exception as e:
+            logger.error(f"❌ Failed to update status for {job_no}: {e}")
 
     def append_rows(self, worksheet_name: str, data_rows: List[List[Any]]):
         """เพิ่มแถวข้อมูลใหม่ต่อท้ายชีต"""
@@ -270,12 +316,15 @@ class JobSyncApplication:
         )
         self.scraper = WebScraper(config.EDOCLITE_USER, config.EDOCLITE_PASS)
     
-    def _process_and_add_new_jobs(self, all_tab_data: Dict[int, pd.DataFrame]) -> int:
-        """กรองเฉพาะ Job ใหม่และเพิ่มลงใน Master Sheet"""
-        logger.info("Filtering for new jobs to add to the Master sheet...")
-        existing_job_nos = self.sheet_manager.get_all_job_nos(self.config.MASTER_SHEET_NAME)
+    def _process_and_add_new_jobs(self, all_tab_data: Dict[int, pd.DataFrame]) -> Tuple[int, int]:
+        """กรองเฉพาะ Job ใหม่และเพิ่มลงใน Master Sheet หรือ อัปเดตสถานะของงานเดิม"""
+        logger.info("Processing jobs: checking for new jobs and status updates...")
+        
+        # ดึงข้อมูล Job ที่มีอยู่แล้วพร้อมตำแหน่ง
+        existing_jobs = self.sheet_manager.get_job_data_with_positions(self.config.MASTER_SHEET_NAME)
         
         new_records_to_add = []
+        updated_jobs_count = 0
         all_headers = set(['Job_No', 'Source_Tab', 'First_Seen'])
 
         for tab_num, df in all_tab_data.items():
@@ -294,19 +343,36 @@ class JobSyncApplication:
 
             for _, row in df.iterrows():
                 job_no = str(row[job_no_col]).strip()
-                if not job_no or job_no in existing_job_nos:
-                    continue  # ข้ามถ้าไม่มี Job No หรือมีอยู่แล้ว
+                if not job_no:
+                    continue  # ข้ามถ้าไม่มี Job No
                 
-                # ถ้าเป็น Job ใหม่ ให้เตรียมข้อมูล
-                new_record = {str(col): str(val) for col, val in row.items()}
-                new_record['Job_No'] = job_no
-                new_record['Source_Tab'] = tab_name
-                new_record['First_Seen'] = datetime.now(timezone.utc).isoformat()
-                
-                new_records_to_add.append(new_record)
-                existing_job_nos.add(job_no) # เพิ่มเข้าไปใน Set เพื่อป้องกันการเพิ่มซ้ำจากแท็บอื่นในรอบเดียวกัน
-                self.notifier.send(f"🆕 New Job Found: {job_no} (from {tab_name})")
+                # ตรวจสอบว่า Job No มีอยู่แล้วหรือไม่
+                if job_no in existing_jobs:
+                    # มีอยู่แล้ว - ตรวจสอบว่าสถานะเปลี่ยนหรือไม่
+                    current_status = existing_jobs[job_no]['current_status']
+                    if current_status != tab_name:
+                        # สถานะเปลี่ยน - อัปเดต
+                        self.sheet_manager.update_job_status(
+                            self.config.MASTER_SHEET_NAME,
+                            job_no,
+                            tab_name,
+                            existing_jobs[job_no]['row'],
+                            existing_jobs[job_no]['source_tab_col']
+                        )
+                        updated_jobs_count += 1
+                        self.notifier.send(f"🔄 อัปเดตสถานะงาน: {job_no}\n   จาก: {current_status}\n   เป็น: {tab_name}")
+                else:
+                    # ไม่มี - เพิ่มใหม่
+                    new_record = {str(col): str(val) for col, val in row.items()}
+                    new_record['Job_No'] = job_no
+                    new_record['Source_Tab'] = tab_name
+                    new_record['First_Seen'] = datetime.now(timezone.utc).isoformat()
+                    
+                    new_records_to_add.append(new_record)
+                    existing_jobs[job_no] = {'current_status': tab_name}  # เพิ่มเข้าไปเพื่อป้องกันการเพิ่มซ้ำในรอบเดียวกัน
+                    self.notifier.send(f"🆕 งานใหม่: {job_no} (จาก {tab_name})")
 
+        # เพิ่มงานใหม่ลง Sheet
         if new_records_to_add:
             # ตรวจสอบและสร้าง Header ให้ Master Sheet หากยังไม่มี
             master_ws = self.sheet_manager.get_or_create_worksheet(self.config.MASTER_SHEET_NAME)
@@ -325,12 +391,12 @@ class JobSyncApplication:
             
             self.sheet_manager.append_rows(self.config.MASTER_SHEET_NAME, rows_to_append)
 
-        return len(new_records_to_add)
+        return len(new_records_to_add), updated_jobs_count
 
     def run(self):
         """ฟังก์ชันหลักสำหรับรันกระบวนการทั้งหมด"""
         start_time = datetime.now()
-        self.sheet_manager.log_activity("Sync Start", "Starting job synchronization process.")
+        self.sheet_manager.log_activity("Sync Start", "เริ่มต้นกระบวนการซิงค์งาน")
         
         all_tab_data = {}
         successful_tabs, failed_tabs = [], []
@@ -342,8 +408,8 @@ class JobSyncApplication:
             # Login
             logged_in, driver = self.scraper.login(driver)
             if not logged_in:
-                self.notifier.send("❌ Critical Error: Login to edoclite failed. Please check credentials.")
-                self.sheet_manager.log_activity("Login Failed", "Could not log in.", "Failed")
+                self.notifier.send("❌ ข้อผิดพลาดร้ายแรง: เข้าสู่ระบบ edoclite ไม่ได้ กรุณาตรวจสอบ username/password")
+                self.sheet_manager.log_activity("Login Failed", "ไม่สามารถเข้าสู่ระบบได้", "Failed")
                 return
             
             # Scrape แต่ละ tab
@@ -360,29 +426,30 @@ class JobSyncApplication:
             # ปิด browser
             driver.quit()
         
-        # ประมวลผลและเพิ่มข้อมูลใหม่เท่านั้น
-        new_jobs_count = self._process_and_add_new_jobs(all_tab_data)
+        # ประมวลผลและเพิ่มข้อมูลใหม่ หรือ อัปเดตสถานะ
+        new_jobs_count, updated_jobs_count = self._process_and_add_new_jobs(all_tab_data)
         
         end_time = datetime.now()
         duration = (end_time - start_time).total_seconds()
         
         # Log summary
-        summary_details = f"Added {new_jobs_count} new jobs. Success Tabs: {len(successful_tabs)}. Failed Tabs: {len(failed_tabs)}."
+        summary_details = f"เพิ่มงานใหม่ {new_jobs_count} งาน, อัปเดตสถานะ {updated_jobs_count} งาน. แท็บสำเร็จ: {len(successful_tabs)}. แท็บล้มเหลว: {len(failed_tabs)}."
         status = "Success" if not failed_tabs else "Partial Success"
         self.sheet_manager.log_activity("Sync Complete", summary_details, status)
         
         # Send final notification
         summary_msg = f"""
-        ✅ Job Sync Complete!
+        ✅ ซิงค์งานเสร็จสิ้น!
         
-        - 🆕 Found and Added: {new_jobs_count} new jobs
-        - 🗂️ Total tabs scraped: {len(successful_tabs)}/{len(self.config.TABS_TO_SCRAPE)}
-        - ⏱️ Duration: {duration:.2f} seconds
+        - 🆕 พบและเพิ่มงานใหม่: {new_jobs_count} งาน
+        - 🔄 อัปเดตสถานะงาน: {updated_jobs_count} งาน
+        - 🗂️ แท็บที่ดึงข้อมูลได้: {len(successful_tabs)}/{len(self.config.TABS_TO_SCRAPE)}
+        - ⏱️ ใช้เวลา: {duration:.2f} วินาที
         
         🔗 Master Sheet: https://docs.google.com/spreadsheets/d/{self.config.GOOGLE_SHEET_ID}
         """.strip()
         self.notifier.send(summary_msg)
-        logger.info(f"🎉 Process finished in {duration:.2f} seconds.")
+        logger.info(f"🎉 กระบวนการเสร็จสิ้นใน {duration:.2f} วินาที")
 
 
 # ==============================================================================
@@ -396,14 +463,14 @@ if __name__ == "__main__":
         app.run()
         sys.exit(0)
     except (ValueError, gspread.exceptions.GSpreadException) as e:
-        logger.error(f"💥 Configuration or Google Sheets Error: {e}")
+        logger.error(f"💥 ข้อผิดพลาดในการตั้งค่าหรือ Google Sheets: {e}")
         token = os.getenv("LINE_NOTIFY_TOKEN", "").strip()
         if token:
-            Notifier(token).send(f"💥 Job Sync Failed (Setup Error): {e}")
+            Notifier(token).send(f"💥 ซิงค์งานล้มเหลว (ข้อผิดพลาดการตั้งค่า): {e}")
         sys.exit(1)
     except Exception as e:
-        logger.error(f"💥 An unexpected critical error occurred: {e}", exc_info=True)
+        logger.error(f"💥 เกิดข้อผิดพลาดร้ายแรงที่ไม่คาดคิด: {e}", exc_info=True)
         token = os.getenv("LINE_NOTIFY_TOKEN", "").strip()
         if token:
-            Notifier(token).send(f"💥 Job Sync CRASHED: An unexpected error occurred. Check logs. {e}")
+            Notifier(token).send(f"💥 ระบบซิงค์งานขัดข้อง: เกิดข้อผิดพลาดที่ไม่คาดคิด กรุณาตรวจสอบ log {e}")
         sys.exit(1)
