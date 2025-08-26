@@ -6,7 +6,6 @@
     <title>AI JobN Scraper Dashboard 2025</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap');
         
@@ -327,130 +326,6 @@
         .pagination-btn.active {
             background: var(--ai-gradient);
         }
-
-        /* AI Chatbot Styles */
-        .chatbot-container {
-            position: fixed;
-            bottom: 24px;
-            right: 24px;
-            width: 400px;
-            height: 600px;
-            z-index: 1000;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .chatbot-container.minimized {
-            height: 80px;
-            width: 320px;
-        }
-
-        .chatbot-header {
-            background: var(--ai-gradient);
-            background-size: 200% 200%;
-            animation: gradientShift 8s ease-in-out infinite;
-        }
-
-        .chatbot-messages {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        }
-
-        .dark .chatbot-messages {
-            background: rgba(15, 23, 42, 0.95);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .message-bubble {
-            max-width: 85%;
-            padding: 12px 16px;
-            border-radius: 18px;
-            margin-bottom: 12px;
-            word-wrap: break-word;
-            animation: messageSlideIn 0.3s ease-out;
-        }
-
-        @keyframes messageSlideIn {
-            from {
-                opacity: 0;
-                transform: translateY(10px) scale(0.95);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0) scale(1);
-            }
-        }
-
-        .message-user {
-            background: var(--ai-gradient);
-            color: white;
-            margin-left: auto;
-            border-bottom-right-radius: 6px;
-        }
-
-        .message-ai {
-            background: rgba(99, 102, 241, 0.1);
-            color: #1e293b;
-            border-bottom-left-radius: 6px;
-        }
-
-        .dark .message-ai {
-            background: rgba(99, 102, 241, 0.2);
-            color: #e2e8f0;
-        }
-
-        .ai-status-indicator {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .status-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            animation: statusPulse 2s infinite;
-        }
-
-        .status-online { background-color: #10b981; }
-        .status-offline { background-color: #ef4444; }
-        .status-processing { background-color: #f59e0b; }
-
-        @keyframes statusPulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
-
-        .typing-indicator {
-            display: flex;
-            align-items: center;
-            gap: 4px;
-            padding: 12px 16px;
-        }
-
-        .typing-dot {
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            background: #6366f1;
-            animation: typingBounce 1.4s infinite;
-        }
-
-        .typing-dot:nth-child(1) { animation-delay: 0ms; }
-        .typing-dot:nth-child(2) { animation-delay: 200ms; }
-        .typing-dot:nth-child(3) { animation-delay: 400ms; }
-
-        @keyframes typingBounce {
-            0%, 60%, 100% { transform: translateY(0); }
-            30% { transform: translateY(-10px); }
-        }
-
-        /* Chart Containers */
-        .chart-container {
-            position: relative;
-            height: 300px;
-            margin: 20px 0;
-        }
     </style>
 </head>
 <body class="bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-900 dark:via-slate-800 dark:to-indigo-900 min-h-screen transition-all duration-500">
@@ -483,9 +358,6 @@
                     </button>
                     <button onclick="navigateTo('data')" class="nav-btn text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white px-4 py-2 rounded-lg transition-all font-medium">
                         <i class="fas fa-database mr-2"></i>Data
-                    </button>
-                    <button onclick="navigateTo('analytics')" class="nav-btn text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white px-4 py-2 rounded-lg transition-all font-medium">
-                        <i class="fas fa-chart-bar mr-2"></i>Analytics
                     </button>
                     <button onclick="navigateTo('settings')" class="nav-btn text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white px-4 py-2 rounded-lg transition-all font-medium">
                         <i class="fas fa-cog mr-2"></i>Settings
@@ -526,19 +398,12 @@
                         </div>
                         <div>
                             <h2 class="text-2xl font-bold text-white">AI-Powered Job Intelligence</h2>
-                            <p class="text-white/80 text-sm">Next-generation automated job analysis with น้องจ๊อบ AI Assistant</p>
+                            <p class="text-white/80 text-sm">Next-generation automated job analysis</p>
                         </div>
                     </div>
                     <div class="text-right">
                         <div class="text-white/60 text-xs uppercase tracking-wider font-semibold">System Status</div>
                         <div class="text-white text-lg font-bold" id="ai-status">Neural Network Active</div>
-                        <div class="flex items-center justify-end mt-2">
-                            <div class="ai-status-indicator text-white/80 text-sm">
-                                <span>น้องจ๊อบ AI:</span>
-                                <div class="status-dot status-online" id="job-ai-status"></div>
-                                <span id="job-ai-text">Online</span>
-                            </div>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -587,15 +452,15 @@
                     </div>
                 </div>
 
-                <!-- AI Performance Card -->
+                <!-- Performance Card -->
                 <div class="glass-card floating-card rounded-2xl p-6">
                     <div class="flex items-center justify-between mb-4">
                         <div class="w-12 h-12 bg-gradient-to-r from-orange-500 to-red-500 rounded-xl flex items-center justify-center">
-                            <i class="fas fa-brain text-white text-lg loading-brain"></i>
+                            <i class="fas fa-chart-line text-white text-lg"></i>
                         </div>
                         <div class="text-right">
-                            <p class="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider font-semibold">AI Performance</p>
-                            <p class="text-sm font-medium text-slate-800 dark:text-white" id="ai-performance">98.5% Accuracy</p>
+                            <p class="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider font-semibold">Performance</p>
+                            <p class="text-sm font-medium text-slate-800 dark:text-white">98.5% Uptime</p>
                         </div>
                     </div>
                 </div>
@@ -609,7 +474,7 @@
                     </div>
                     <div>
                         <h2 class="text-3xl font-bold text-slate-800 dark:text-white">Neural Control Center</h2>
-                        <p class="text-slate-600 dark:text-slate-400 text-lg">Advanced AI-driven job intelligence system with น้องจ๊อบ assistant</p>
+                        <p class="text-slate-600 dark:text-slate-400 text-lg">Advanced AI-driven job intelligence system</p>
                     </div>
                 </div>
                 
@@ -691,77 +556,6 @@
             </div>
         </div>
 
-        <!-- Analytics Page -->
-        <div id="analytics-page" class="page-content hidden">
-            <div class="glass-card rounded-3xl p-8 mb-8">
-                <div class="flex items-center mb-8">
-                    <div class="w-16 h-16 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center mr-6 shadow-lg">
-                        <i class="fas fa-chart-bar text-white text-2xl"></i>
-                    </div>
-                    <div>
-                        <h1 class="text-4xl font-bold text-slate-800 dark:text-white">AI Analytics Dashboard</h1>
-                        <p class="text-slate-600 dark:text-slate-400 text-lg">Deep insights from job scraping data with น้องจ๊อบ AI analysis</p>
-                    </div>
-                </div>
-
-                <!-- Analytics Cards -->
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                    <div class="glass-card floating-card rounded-2xl p-6">
-                        <div class="flex items-center justify-between mb-4">
-                            <div class="w-12 h-12 bg-gradient-to-r from-green-500 to-emerald-500 rounded-xl flex items-center justify-center">
-                                <i class="fas fa-briefcase text-white text-lg"></i>
-                            </div>
-                            <div class="text-right">
-                                <p class="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider font-semibold">Total Jobs</p>
-                                <p class="text-2xl font-bold text-slate-800 dark:text-white" id="total-jobs">0</p>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="glass-card floating-card rounded-2xl p-6">
-                        <div class="flex items-center justify-between mb-4">
-                            <div class="w-12 h-12 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center">
-                                <i class="fas fa-building text-white text-lg"></i>
-                            </div>
-                            <div class="text-right">
-                                <p class="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider font-semibold">Companies</p>
-                                <p class="text-2xl font-bold text-slate-800 dark:text-white" id="total-companies">0</p>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="glass-card floating-card rounded-2xl p-6">
-                        <div class="flex items-center justify-between mb-4">
-                            <div class="w-12 h-12 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl flex items-center justify-center">
-                                <i class="fas fa-map-marker-alt text-white text-lg"></i>
-                            </div>
-                            <div class="text-right">
-                                <p class="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider font-semibold">Locations</p>
-                                <p class="text-2xl font-bold text-slate-800 dark:text-white" id="total-locations">0</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Charts -->
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    <div class="glass-card rounded-2xl p-6">
-                        <h3 class="text-xl font-bold text-slate-800 dark:text-white mb-4">Jobs by Center</h3>
-                        <div class="chart-container">
-                            <canvas id="jobs-by-center-chart"></canvas>
-                        </div>
-                    </div>
-                    
-                    <div class="glass-card rounded-2xl p-6">
-                        <h3 class="text-xl font-bold text-slate-800 dark:text-white mb-4">Jobs Over Time</h3>
-                        <div class="chart-container">
-                            <canvas id="jobs-timeline-chart"></canvas>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
         <!-- Settings Page -->
         <div id="settings-page" class="page-content hidden">
             <div class="glass-card rounded-3xl p-8">
@@ -789,80 +583,6 @@
         </div>
     </div>
 
-    <!-- AI Chatbot - น้องจ๊อบ -->
-    <div class="chatbot-container glass-card rounded-3xl shadow-2xl" id="chatbot">
-        <!-- Chatbot Header -->
-        <div class="chatbot-header rounded-t-3xl p-4 flex items-center justify-between cursor-pointer" onclick="toggleChatbot()">
-            <div class="flex items-center space-x-3">
-                <div class="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
-                    <i class="fas fa-robot text-white text-xl loading-brain"></i>
-                </div>
-                <div>
-                    <h3 class="text-white font-bold text-lg">น้องจ๊อบ AI Assistant</h3>
-                    <p class="text-white/80 text-sm">ยินดีให้บริการตอบคำถาม</p>
-                </div>
-            </div>
-            <div class="flex items-center space-x-2">
-                <div class="ai-status-indicator">
-                    <div class="status-dot status-online" id="chatbot-status-dot"></div>
-                    <span class="text-white text-sm" id="chatbot-status-text">Online</span>
-                </div>
-                <button class="text-white hover:text-white/70 transition-colors" id="chatbot-toggle">
-                    <i class="fas fa-minus" id="chatbot-toggle-icon"></i>
-                </button>
-            </div>
-        </div>
-
-        <!-- Chatbot Body -->
-        <div class="chatbot-body" id="chatbot-body">
-            <!-- Messages Container -->
-            <div class="chatbot-messages h-96 p-4 overflow-y-auto" id="chatbot-messages">
-                <div class="message-bubble message-ai">
-                    <div class="flex items-center space-x-2 mb-2">
-                        <i class="fas fa-robot text-blue-500"></i>
-                        <span class="font-semibold text-blue-600">น้องจ๊อบ</span>
-                    </div>
-                    <p>สวัสดีครับ! ผม น้องจ๊อบ AI Assistant ยินดีให้บริการตอบคำถามเกี่ยวกับระบบ Job Scraper นี้ครับ</p>
-                    <p class="mt-2 text-sm">คุณสามารถถามเกี่ยวกับ:</p>
-                    <ul class="mt-1 text-sm list-disc list-inside">
-                        <li>สถานะการทำงานของระบบ</li>
-                        <li>ข้อมูลที่เก็บรวบรวม</li>
-                        <li>การวิเคราะห์และสถิติ</li>
-                        <li>การใช้งานระบบ</li>
-                    </ul>
-                </div>
-            </div>
-
-            <!-- Typing Indicator -->
-            <div class="typing-indicator hidden" id="typing-indicator">
-                <div class="flex items-center space-x-2 px-4">
-                    <i class="fas fa-robot text-blue-500"></i>
-                    <span class="text-sm text-slate-600 dark:text-slate-400">น้องจ๊อบ กำลังพิมพ์</span>
-                </div>
-                <div class="typing-dot"></div>
-                <div class="typing-dot"></div>
-                <div class="typing-dot"></div>
-            </div>
-
-            <!-- Input Container -->
-            <div class="p-4 border-t border-slate-200 dark:border-slate-600">
-                <div class="flex space-x-2">
-                    <input type="text" 
-                           id="chatbot-input" 
-                           placeholder="พิมพ์คำถามของคุณ..." 
-                           class="flex-1 px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-xl bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                           onkeypress="handleChatInput(event)">
-                    <button onclick="sendMessage()" 
-                            class="btn-primary text-white px-6 py-2 rounded-xl font-bold flex items-center space-x-2"
-                            id="send-btn">
-                        <i class="fas fa-paper-plane"></i>
-                        <span class="hidden sm:inline">ส่ง</span>
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <!-- Toast Notification -->
     <div id="toast" class="fixed top-4 right-4 z-50 opacity-0 transition-all duration-300 transform translate-y-2">
         <div class="glass-card rounded-2xl p-6 max-w-sm shadow-2xl">
@@ -877,290 +597,645 @@
         </div>
     </div>
 
-<script>
-    // ========================================================================
-    // SECTION 1: STATE & CONFIGURATION (No changes to original logic)
-    // ========================================================================
-    let statusInterval;
-    let currentPage = 'dashboard';
-    let currentData = [];
-    let filteredData = [];
-    let currentPage_pagination = 1;
-    let rowsPerPage = 10;
-    let chatbotMinimized = false;
+    <script>
+        let statusInterval;
+        let currentPage = 'dashboard';
+        let currentData = [];
+        let filteredData = [];
+        let currentPage_pagination = 1;
+        let rowsPerPage = 10; // ตั้งค่าเริ่มต้นเป็น 10 รายการ
 
-    const GOOGLE_SHEET_ID = '1U98CRxBxFD2ucnC0Ncxgw0Dx0Rt8HvCEKQuUo8zmOCY';
-    const SHEET_NAME = 'Master_Data';
-    const RANGE = 'D:AC';
-    // const QWEN_API_URL = '/api/chat'; // Assuming it's proxied by the backend
+        // Google Sheets Configuration
+        const GOOGLE_SHEET_ID = '1U98CRxBxFD2ucnC0Ncxgw0Dx0Rt8HvCEKQuUo8zmOCY';
+        const SHEET_NAME = 'Master_Data';
+        const RANGE = 'D:AC'; // Columns D to AC
 
-    // ========================================================================
-    // [NEW FEATURE] SECTION 2: COMMAND BAR
-    // ========================================================================
-    const commands = [
-        { name: 'Start Scraper', icon: 'fa-rocket', action: () => { startScraping(); showToast('Scraper initiated.', 'info'); } },
-        { name: 'Go to Dashboard', icon: 'fa-tachometer-alt', action: () => document.querySelector('button[onclick="navigateTo(\'dashboard\')"]').click() },
-        { name: 'Go to Data', icon: 'fa-database', action: () => document.querySelector('button[onclick="navigateTo(\'data\')"]').click() },
-        { name: 'Go to Analytics', icon: 'fa-chart-bar', action: () => document.querySelector('button[onclick="navigateTo(\'analytics\')"]').click() },
-        { name: 'Go to Logs', icon: 'fa-file-alt', action: () => document.querySelector('button[onclick="navigateTo(\'logs\')"]').click() },
-        { name: 'Refresh Status', icon: 'fa-sync-alt', action: () => refreshStatus() },
-        { name: 'Test Connections', icon: 'fa-network-wired', action: () => testConnections() },
-        { name: 'Toggle Dark Mode', icon: 'fa-moon', action: () => toggleDarkMode() },
-        { name: 'Export Data as CSV', icon: 'fa-download', action: () => exportData() }
-    ];
-
-    function renderCommands(filter = '') {
-        const list = document.getElementById('command-list');
-        const filteredCommands = commands.filter(c => c.name.toLowerCase().includes(filter.toLowerCase()));
-        list.innerHTML = filteredCommands.map((cmd, index) => `
-            <li class="flex items-center space-x-4 p-3 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg cursor-pointer transition-colors ${index === 0 ? 'bg-slate-200 dark:bg-slate-700' : ''}" 
-                data-command-index="${index}" onclick="executeCommand(${commands.indexOf(cmd)})">
-                <i class="fas ${cmd.icon} text-slate-500 w-5 text-center"></i>
-                <span class="text-slate-800 dark:text-white">${cmd.name}</span>
-            </li>
-        `).join('') || `<li class="p-4 text-center text-slate-500">No commands found.</li>`;
-    }
-
-    function toggleCommandBar(show) {
-        const container = document.getElementById('command-bar-container');
-        if (show) {
-            container.classList.remove('hidden');
-            container.classList.add('flex');
-            document.getElementById('command-input').focus();
-            renderCommands();
-        } else {
-            container.classList.add('hidden');
-            container.classList.remove('flex');
-            document.getElementById('command-input').value = '';
+        // Theme system
+        function setTheme(theme) {
+            const body = document.body;
+            body.className = body.className.replace(/theme-\w+/g, '');
+            if (theme !== 'default') {
+                body.classList.add(`theme-${theme}`);
+            }
+            
+            // Update active theme button
+            document.querySelectorAll('.theme-option').forEach(btn => btn.classList.remove('active'));
+            document.querySelector(`[data-theme="${theme}"]`).classList.add('active');
+            
+            localStorage.setItem('theme', theme);
         }
-    }
 
-    function executeCommand(index) {
-        if (commands[index]) {
-            commands[index].action();
-            toggleCommandBar(false);
+        // Initialize theme
+        document.querySelectorAll('.theme-option').forEach(btn => {
+            btn.addEventListener('click', () => setTheme(btn.dataset.theme));
+        });
+
+        const savedTheme = localStorage.getItem('theme') || 'default';
+        setTheme(savedTheme);
+
+        // Dark mode toggle
+        function toggleDarkMode() {
+            document.documentElement.classList.toggle('dark');
+            localStorage.setItem('darkMode', document.documentElement.classList.contains('dark'));
         }
-    }
 
-    window.addEventListener('keydown', (e) => {
-        if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
-            e.preventDefault();
-            toggleCommandBar(!document.getElementById('command-bar-container').classList.contains('flex'));
+        // Initialize dark mode from localStorage
+        if (localStorage.getItem('darkMode') === 'true') {
+            document.documentElement.classList.add('dark');
         }
-    });
-    
-    document.getElementById('command-input')?.addEventListener('input', (e) => renderCommands(e.target.value));
 
-    // ========================================================================
-    // [NEW FEATURE] SECTION 3: INTERACTIVE LOGS & CHATBOT QUICK REPLIES
-    // ========================================================================
-    function filterLogs() {
-        const searchTerm = document.getElementById('log-search-input').value.toLowerCase();
-        const activeFilter = document.querySelector('.log-filter-btn.active').dataset.filter;
+        // Navigation
+        function navigateTo(page) {
+            // Hide all pages
+            document.querySelectorAll('.page-content').forEach(p => p.classList.add('hidden'));
+            // Show target page
+            document.getElementById(page + '-page').classList.remove('hidden');
+            
+            // Update nav buttons
+            document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.closest('.nav-btn').classList.add('active');
+            
+            currentPage = page;
+            
+            // Load page-specific content
+            switch(page) {
+                case 'data':
+                    loadDataPage();
+                    break;
+                case 'settings':
+                    loadSettingsPage();
+                    break;
+                case 'logs':
+                    loadLogsPage();
+                    break;
+            }
+        }
 
-        document.querySelectorAll('#logs-container .log-entry').forEach(entry => {
-            const text = entry.textContent.toLowerCase();
-            let show = true;
+        function showToast(message, type = 'info') {
+            const toast = document.getElementById('toast');
+            const icon = document.getElementById('toast-icon');
+            const messageEl = document.getElementById('toast-message');
+            
+            messageEl.textContent = message;
+            
+            const icons = {
+                'success': 'fa-check-circle text-emerald-500',
+                'error': 'fa-exclamation-circle text-red-500',
+                'info': 'fa-info-circle text-blue-500',
+                'warning': 'fa-exclamation-triangle text-amber-500'
+            };
+            
+            icon.className = `fas ${icons[type] || icons.info}`;
+            
+            // Show toast
+            toast.classList.remove('opacity-0', 'translate-y-2');
+            toast.classList.add('opacity-100', 'translate-y-0');
+            
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-2');
+                toast.classList.remove('opacity-100', 'translate-y-0');
+            }, 4000);
+        }
 
-            if (searchTerm && !text.includes(searchTerm)) {
-                show = false;
+        // Google Sheets Data Loading
+        async function loadGoogleSheetData() {
+            try {
+                const url = `https://docs.google.com/spreadsheets/d/${GOOGLE_SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${SHEET_NAME}&range=${RANGE}`;
+                
+                const response = await fetch(url);
+                if (!response.ok) {
+                    throw new Error('Failed to fetch data from Google Sheets');
+                }
+                
+                const csvText = await response.text();
+                const rows = csvText.split('\n').map(row => {
+                    // Simple CSV parsing - handle quoted fields
+                    const fields = [];
+                    let current = '';
+                    let inQuotes = false;
+                    
+                    for (let i = 0; i < row.length; i++) {
+                        const char = row[i];
+                        if (char === '"') {
+                            inQuotes = !inQuotes;
+                        } else if (char === ',' && !inQuotes) {
+                            fields.push(current.trim().replace(/^"|"$/g, ''));
+                            current = '';
+                        } else {
+                            current += char;
+                        }
+                    }
+                    fields.push(current.trim().replace(/^"|"$/g, ''));
+                    return fields;
+                }).filter(row => row.length > 1 && row.some(cell => cell.trim()));
+
+                return rows;
+            } catch (error) {
+                console.error('Error loading Google Sheets data:', error);
+                throw error;
+            }
+        }
+
+        function createDataTable(data) {
+            if (!data || data.length === 0) {
+                return '<div class="text-center py-16"><i class="fas fa-exclamation-triangle text-6xl text-amber-500 mb-6"></i><p class="text-xl text-slate-600 dark:text-slate-400">ไม่พบข้อมูล</p></div>';
             }
 
-            if (activeFilter !== 'all' && show) {
-                if (activeFilter === 'success' && !text.includes('✅') && !text.includes('success')) show = false;
-                if (activeFilter === 'error' && !text.includes('❌') && !text.includes('error')) show = false;
-                if (activeFilter === 'progress' && !text.includes('progress')) show = false;
-            }
+            const headers = ['NO.', ...data[0]]; // เพิ่มคอลัมน์ NO. ที่หัวตาราง
+            currentData = data.slice(1); // เก็บข้อมูลต้นฉบับ (ไม่รวม headers)
+            
+            // เรียงข้อมูลจากใหม่ไปเก่า (10 รายการล่าสุด)
+            currentData.reverse();
+            
+            filteredData = [...currentData]; // คัดลอกข้อมูลสำหรับการกรอง
+            currentPage_pagination = 1; // รีเซ็ตหน้า
 
-            entry.style.display = show ? 'block' : 'none';
-        });
-    }
+            let html = `
+                <div class="mb-6 flex items-center justify-between">
+                    <div class="text-sm text-slate-600 dark:text-slate-400">
+                        พบข้อมูล ${currentData.length} รายการ จาก Google Sheets (แสดง ${rowsPerPage} รายการล่าสุด)
+                    </div>
+                    <div class="flex space-x-2">
+                        <input type="text" id="search-input" placeholder="ค้นหาข้อมูล..." 
+                               class="px-4 py-2 rounded-xl border border-slate-300 dark:border-slate-600 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all">
+                        <select id="rows-per-page" class="px-4 py-2 rounded-xl border border-slate-300 dark:border-slate-600 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm">
+                            <option value="10" selected>10 รายการ</option>
+                            <option value="25">25 รายการ</option>
+                            <option value="50">50 รายการ</option>
+                            <option value="100">100 รายการ</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="overflow-x-auto rounded-xl shadow-lg">
+                    <table class="data-table w-full">
+                        <thead>
+                            <tr>
+            `;
 
-    document.querySelectorAll('.log-filter-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            document.querySelector('.log-filter-btn.active').classList.remove('active');
-            btn.classList.add('active');
-            filterLogs();
-        });
-    });
-
-    document.getElementById('log-search-input')?.addEventListener('input', filterLogs);
-    
-    function sendQuickReply(message) {
-        document.getElementById('chatbot-input').value = message;
-        sendMessage();
-    }
-
-
-    // ========================================================================
-    // SECTION 4: ORIGINAL DASHBOARD FUNCTIONS (Unchanged Logic)
-    // ========================================================================
-    
-    // Theme system
-    function setTheme(theme) {
-        const body = document.body;
-        body.className = body.className.replace(/theme-\w+/g, '');
-        if (theme !== 'default') {
-            body.classList.add(`theme-${theme}`);
-        }
-        document.querySelectorAll('.theme-option').forEach(btn => btn.classList.remove('active'));
-        document.querySelector(`[data-theme="${theme}"]`).classList.add('active');
-        localStorage.setItem('theme', theme);
-    }
-    
-    document.querySelectorAll('.theme-option').forEach(btn => {
-        btn.addEventListener('click', () => setTheme(btn.dataset.theme));
-    });
-    const savedTheme = localStorage.getItem('theme') || 'default';
-    setTheme(savedTheme);
-
-    // Dark mode toggle
-    function toggleDarkMode() {
-        document.documentElement.classList.toggle('dark');
-        localStorage.setItem('darkMode', document.documentElement.classList.contains('dark'));
-    }
-    if (localStorage.getItem('darkMode') === 'true') {
-        document.documentElement.classList.add('dark');
-    }
-
-    // Navigation
-    function navigateTo(page) {
-        document.querySelectorAll('.page-content').forEach(p => p.classList.add('hidden'));
-        document.getElementById(page + '-page').classList.remove('hidden');
-        document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
-        event.target.closest('.nav-btn').classList.add('active');
-        currentPage = page;
-        switch(page) {
-            case 'data': loadDataPage(); break;
-            case 'analytics': loadAnalyticsPage(); break;
-            // The logic for loading settings and logs pages from backend can remain
-            case 'settings': loadSettingsPage(); break;
-            case 'logs': loadLogsPage(); break;
-        }
-    }
-    
-    // Toast notifications
-    function showToast(message, type = 'info') {
-        const toast = document.getElementById('toast');
-        const icon = document.getElementById('toast-icon');
-        const messageEl = document.getElementById('toast-message');
-        messageEl.textContent = message;
-        const icons = {
-            'success': 'fa-check-circle text-emerald-500',
-            'error': 'fa-exclamation-circle text-red-500',
-            'info': 'fa-info-circle text-blue-500',
-            'warning': 'fa-exclamation-triangle text-amber-500'
-        };
-        icon.className = `fas ${icons[type] || icons.info}`;
-        toast.classList.remove('opacity-0', 'translate-y-2');
-        toast.classList.add('opacity-100', 'translate-y-0');
-        setTimeout(() => {
-            toast.classList.add('opacity-0', 'translate-y-2');
-            toast.classList.remove('opacity-100', 'translate-y-0');
-        }, 4000);
-    }
-
-    // Chatbot Functions
-    function toggleChatbot() {
-        const chatbot = document.getElementById('chatbot');
-        const body = document.getElementById('chatbot-body');
-        const toggleIcon = document.getElementById('chatbot-toggle-icon');
-        chatbotMinimized = !chatbotMinimized;
-        if (chatbotMinimized) {
-            chatbot.classList.add('minimized');
-            body.style.display = 'none';
-            toggleIcon.className = 'fas fa-plus';
-        } else {
-            chatbot.classList.remove('minimized');
-            body.style.display = 'block';
-            toggleIcon.className = 'fas fa-minus';
-        }
-    }
-
-    function handleChatInput(event) {
-        if (event.key === 'Enter') sendMessage();
-    }
-
-    async function sendMessage() {
-        const input = document.getElementById('chatbot-input');
-        const message = input.value.trim();
-        if (!message) return;
-        addMessage(message, 'user');
-        input.value = '';
-        showTypingIndicator();
-        try {
-            const response = await getAIResponse(message);
-            hideTypingIndicator();
-            addMessage(response, 'ai');
-        } catch (error) {
-            hideTypingIndicator();
-            addMessage('ขออภัยครับ เกิดข้อผิดพลาดในการประมวลผล', 'ai');
-            console.error('AI Response Error:', error);
-        }
-    }
-
-    function addMessage(text, sender) {
-        const messagesContainer = document.getElementById('chatbot-messages');
-        const messageDiv = document.createElement('div');
-        messageDiv.className = `message-bubble message-${sender}`;
-        if (sender === 'ai') {
-            messageDiv.innerHTML = `<div class="flex items-center space-x-2 mb-2"><i class="fas fa-robot text-blue-500"></i><span class="font-semibold text-blue-600">น้องจ๊อบ</span></div><p>${text}</p>`;
-        } else {
-            messageDiv.innerHTML = `<p>${text}</p>`;
-        }
-        messagesContainer.appendChild(messageDiv);
-        messagesContainer.scrollTop = messagesContainer.scrollHeight;
-    }
-
-    function showTypingIndicator() {
-        document.getElementById('typing-indicator').classList.remove('hidden');
-        const messagesContainer = document.getElementById('chatbot-messages');
-        messagesContainer.scrollTop = messagesContainer.scrollHeight;
-    }
-
-    function hideTypingIndicator() {
-        document.getElementById('typing-indicator').classList.add('hidden');
-    }
-
-    async function getAIResponse(userMessage) {
-        try {
-            const response = await fetch('/api/chat', { // Assumes you're using the Flask proxy
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ prompt: userMessage })
+            headers.forEach((header, index) => {
+                if (index === 0) {
+                    html += `<th class="whitespace-nowrap text-center w-16">${header}</th>`;
+                } else {
+                    html += `<th class="whitespace-nowrap">${header || 'ไม่ระบุ'}</th>`;
+                }
             });
-            if (!response.ok) {
-                const errData = await response.json();
-                throw new Error(errData.response || errData.error || 'Unknown AI error');
-            }
-            const data = await response.json();
-            updateAIStatusIndicator('online');
-            return data.response;
-        } catch (error) {
-            console.error("AI Proxy Error:", error);
-            updateAIStatusIndicator('offline');
-            return getLocalAIResponse(userMessage); // Fallback to local
+
+            html += `
+                            </tr>
+                        </thead>
+                        <tbody id="table-body">
+                        </tbody>
+                    </table>
+                </div>
+                <div class="mt-6 flex items-center justify-between">
+                    <div id="pagination-info" class="text-sm text-slate-600 dark:text-slate-400"></div>
+                    <div id="pagination-controls" class="flex space-x-2"></div>
+                </div>
+            `;
+
+            return html;
         }
-    }
 
-    // Local fallback and other functions remain the same as your original file
-    function getLocalAIResponse(userMessage) { /* ... keep your original logic ... */ }
-    function getSystemContext() { /* ... keep your original logic ... */ }
-    function updateAIStatusIndicator(status) { /* ... keep your original logic ... */ }
-    async function loadGoogleSheetData() { /* ... keep your original logic ... */ }
-    function loadAnalyticsPage() { /* ... keep your original logic ... */ }
-    function createDataTable(data) { /* ... keep your original logic ... */ }
-    function startScraping() { /* ... keep your original logic ... */ }
-    function testConnections() { /* ... keep your original logic ... */ }
-    function refreshStatus() { /* ... keep your original logic ... */ }
-    function startStatusPolling() { /* ... keep your original logic ... */ }
-    function stopStatusPolling() { /* ... keep your original logic ... */ }
-    function updateStatus() { /* ... keep your original logic ... */ }
-    function loadDataPage() { /* ... keep your original logic ... */ }
-    // Add other functions from your original script here if they are missing...
+        function renderTableData() {
+            const tableBody = document.getElementById('table-body');
+            if (!tableBody) return;
 
-    // Initialize
-    // updateStatus();
-</script>
+            // คำนวณข้อมูลสำหรับหน้าปัจจุบัน
+            const startIndex = (currentPage_pagination - 1) * rowsPerPage;
+            const endIndex = Math.min(startIndex + rowsPerPage, filteredData.length);
+            const pageData = filteredData.slice(startIndex, endIndex);
+
+            // สร้างแถวในตาราง
+            let html = '';
+            pageData.forEach((row, index) => {
+                const globalIndex = startIndex + index + 1; // เลขลำดับทั้งหมด
+                html += '<tr>';
+                html += `<td class="text-center text-sm font-medium text-slate-800 dark:text-slate-200">${globalIndex}</td>`;
+                row.forEach(cell => {
+                    const cellValue = cell || '';
+                    html += `<td class="whitespace-nowrap text-sm text-slate-800 dark:text-slate-200">${cellValue}</td>`;
+                });
+                html += '</tr>';
+            });
+
+            tableBody.innerHTML = html;
+            updatePaginationInfo();
+            updatePaginationControls();
+        }
+
+        function updatePaginationInfo() {
+            const paginationInfo = document.getElementById('pagination-info');
+            if (!paginationInfo) return;
+
+            const startIndex = (currentPage_pagination - 1) * rowsPerPage + 1;
+            const endIndex = Math.min(currentPage_pagination * rowsPerPage, filteredData.length);
+            
+            paginationInfo.textContent = `แสดง ${startIndex}-${endIndex} จากทั้งหมด ${filteredData.length} รายการ`;
+        }
+
+        function updatePaginationControls() {
+            const paginationControls = document.getElementById('pagination-controls');
+            if (!paginationControls) return;
+
+            const totalPages = Math.ceil(filteredData.length / rowsPerPage);
+            
+            if (totalPages <= 1) {
+                paginationControls.innerHTML = '';
+                return;
+            }
+
+            let html = '';
+            
+            // Previous button
+            html += `<button onclick="changePage(${currentPage_pagination - 1})" 
+                     class="pagination-btn px-3 py-2 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-200 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm border border-slate-300 dark:border-slate-600 
+                     ${currentPage_pagination === 1 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-500 hover:text-white'}"
+                     ${currentPage_pagination === 1 ? 'disabled' : ''}>
+                     <i class="fas fa-chevron-left"></i>
+                     </button>`;
+
+            // Page numbers
+            const maxVisiblePages = 5;
+            let startPage = Math.max(1, currentPage_pagination - Math.floor(maxVisiblePages / 2));
+            let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+            
+            if (endPage - startPage < maxVisiblePages - 1) {
+                startPage = Math.max(1, endPage - maxVisiblePages + 1);
+            }
+
+            for (let i = startPage; i <= endPage; i++) {
+                html += `<button onclick="changePage(${i})" 
+                         class="pagination-btn px-4 py-2 rounded-lg text-sm font-medium 
+                         ${i === currentPage_pagination 
+                           ? 'active text-white' 
+                           : 'text-slate-700 dark:text-slate-200 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm border border-slate-300 dark:border-slate-600 hover:bg-blue-500 hover:text-white'}">${i}</button>`;
+            }
+
+            // Next button
+            html += `<button onclick="changePage(${currentPage_pagination + 1})" 
+                     class="pagination-btn px-3 py-2 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-200 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm border border-slate-300 dark:border-slate-600 
+                     ${currentPage_pagination === totalPages ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-500 hover:text-white'}"
+                     ${currentPage_pagination === totalPages ? 'disabled' : ''}>
+                     <i class="fas fa-chevron-right"></i>
+                     </button>`;
+
+            paginationControls.innerHTML = html;
+        }
+
+        function changePage(page) {
+            const totalPages = Math.ceil(filteredData.length / rowsPerPage);
+            if (page < 1 || page > totalPages) return;
+            
+            currentPage_pagination = page;
+            renderTableData();
+        }
+
+        function initializeTableFeatures() {
+            const searchInput = document.getElementById('search-input');
+            const rowsPerPageSelect = document.getElementById('rows-per-page');
+            
+            if (searchInput) {
+                searchInput.addEventListener('input', handleSearch);
+            }
+            
+            if (rowsPerPageSelect) {
+                // ตั้งค่าเริ่มต้นเป็น 10 รายการ
+                rowsPerPageSelect.value = '10';
+                rowsPerPageSelect.addEventListener('change', handleRowsPerPageChange);
+            }
+
+            // เรนเดอร์ข้อมูลครั้งแรก
+            renderTableData();
+        }
+
+        function handleSearch() {
+            const searchTerm = document.getElementById('search-input').value.toLowerCase().trim();
+            
+            if (searchTerm === '') {
+                filteredData = [...currentData];
+            } else {
+                filteredData = currentData.filter(row => 
+                    row.some(cell => cell && cell.toString().toLowerCase().includes(searchTerm))
+                );
+            }
+            
+            currentPage_pagination = 1; // รีเซ็ตไปหน้าแรก
+            renderTableData();
+        }
+
+        function handleRowsPerPageChange() {
+            const newRowsPerPage = parseInt(document.getElementById('rows-per-page').value);
+            rowsPerPage = newRowsPerPage;
+            currentPage_pagination = 1; // รีเซ็ตไปหน้าแรก
+            renderTableData();
+            
+            // อัพเดทข้อความแสดงจำนวนรายการ
+            const summaryElement = document.querySelector('.mb-6 .text-sm');
+            if (summaryElement) {
+                summaryElement.textContent = `พบข้อมูล ${currentData.length} รายการ จาก Google Sheets (แสดง ${rowsPerPage} รายการต่อหน้า)`;
+            }
+        }
+
+        function exportData() {
+            showToast('กำลังเตรียมไฟล์สำหรับดาวน์โหลด...', 'info');
+            
+            loadGoogleSheetData()
+                .then(data => {
+                    if (data && data.length > 0) {
+                        // เพิ่มคอลัมน์ NO. ในการ export
+                        const exportData = data.map((row, index) => {
+                            if (index === 0) {
+                                return ['NO.', ...row]; // เพิ่ม NO. ที่ header
+                            } else {
+                                return [index, ...row]; // เพิ่มเลขลำดับ
+                            }
+                        });
+                        
+                        const csvContent = exportData.map(row => 
+                            row.map(cell => `"${cell}"`).join(',')
+                        ).join('\n');
+                        
+                        const blob = new Blob(['\uFEFF' + csvContent], { 
+                            type: 'text/csv;charset=utf-8;' 
+                        });
+                        
+                        const link = document.createElement('a');
+                        const url = URL.createObjectURL(blob);
+                        link.setAttribute('href', url);
+                        link.setAttribute('download', `scraped_data_${new Date().toISOString().split('T')[0]}.csv`);
+                        link.style.visibility = 'hidden';
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                        
+                        showToast('ดาวน์โหลดไฟล์สำเร็จ!', 'success');
+                    } else {
+                        showToast('ไม่พบข้อมูลสำหรับดาวน์โหลด', 'warning');
+                    }
+                })
+                .catch(error => {
+                    showToast('เกิดข้อผิดพลาดในการดาวน์โหลด: ' + error.message, 'error');
+                });
+        }
+
+        function startScraping() {
+            const btn = document.getElementById('start-btn');
+            const originalContent = btn.innerHTML;
+            
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-3 text-xl"></i><span>Initializing Neural Network...</span>';
+
+            fetch('/api/start-scraping', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showToast('AI Neural Network Successfully Activated!', 'success');
+                    startStatusPolling();
+                } else {
+                    showToast('Neural Network Activation Failed: ' + data.message, 'error');
+                    btn.disabled = false;
+                    btn.innerHTML = originalContent;
+                }
+            })
+            .catch(error => {
+                showToast('System Error: ' + error.message, 'error');
+                btn.disabled = false;
+                btn.innerHTML = originalContent;
+            });
+        }
+
+        function testConnections() {
+            showToast('Running neural network diagnostics...', 'info');
+            
+            fetch('/api/test-connection', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    let successCount = 0;
+                    let totalCount = 0;
+                    Object.entries(data.results).forEach(([service, result]) => {
+                        totalCount++;
+                        if (result.status === 'success') successCount++;
+                    });
+                    showToast(`Neural diagnostics complete: ${successCount}/${totalCount} systems operational`, successCount === totalCount ? 'success' : 'warning');
+                } else {
+                    showToast('Diagnostic failure: ' + data.message, 'error');
+                }
+            })
+            .catch(error => {
+                showToast('Diagnostic error: ' + error.message, 'error');
+            });
+        }
+
+        function refreshStatus() {
+            updateStatus();
+            showToast('Neural network status refreshed', 'success');
+        }
+
+        function startStatusPolling() {
+            if (statusInterval) clearInterval(statusInterval);
+            statusInterval = setInterval(updateStatus, 3000);
+            document.getElementById('progress-container').classList.remove('hidden');
+            
+            // Add running class to status card
+            document.getElementById('status-card').classList.add('running');
+        }
+
+        function stopStatusPolling() {
+            if (statusInterval) {
+                clearInterval(statusInterval);
+                statusInterval = null;
+            }
+            document.getElementById('progress-container').classList.add('hidden');
+            
+            // Remove running class
+            document.getElementById('status-card').classList.remove('running');
+            
+            const btn = document.getElementById('start-btn');
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-rocket group-hover:animate-bounce text-xl"></i><span>Launch AI Scraper</span>';
+        }
+
+        function updateStatus() {
+            fetch('/api/status')
+                .then(response => response.json())
+                .then(data => {
+                    // Update status
+                    const statusText = document.getElementById('status-text');
+                    const statusDot = document.getElementById('status-dot');
+                    const statusProgress = document.getElementById('status-progress');
+                    const aiStatus = document.getElementById('ai-status');
+                    
+                    if (data.is_running) {
+                        statusText.textContent = 'Processing';
+                        aiStatus.textContent = 'Neural Network Active';
+                        statusDot.classList.add('pulse-glow');
+                        statusProgress.style.width = '100%';
+                    } else {
+                        statusText.textContent = 'Ready';
+                        aiStatus.textContent = 'Neural Network Standby';
+                        statusDot.classList.remove('pulse-glow');
+                        statusProgress.style.width = '0%';
+                    }
+                    
+                    // Update last run
+                    document.getElementById('last-run').textContent = data.last_run || 'Never executed';
+                    
+                    // Update last result
+                    const resultEl = document.getElementById('last-result');
+                    const resultIcon = document.getElementById('result-icon');
+                    
+                    if (data.last_result) {
+                        resultEl.textContent = data.last_result;
+                        if (data.last_result.includes('success') || data.last_result.includes('สำเร็จ')) {
+                            resultIcon.className = 'fas fa-check-circle text-white';
+                        } else {
+                            resultIcon.className = 'fas fa-exclamation-circle text-white';
+                        }
+                    }
+                    
+                    // Update progress
+                    const progressText = document.getElementById('progress-text');
+                    if (data.progress) {
+                        progressText.textContent = data.progress;
+                    }
+                    
+                    // Update logs
+                    updateDashboardLogs(data.logs);
+                    
+                    // Stop polling if not running
+                    if (!data.is_running && statusInterval) {
+                        stopStatusPolling();
+                    }
+                })
+                .catch(error => {
+                    console.error('Neural network status update error:', error);
+                });
+        }
+
+        function updateDashboardLogs(logs) {
+            const container = document.getElementById('logs-container');
+            if (logs && logs.length > 0) {
+                const recentLogs = logs.slice(-5); // Show last 5 logs
+                container.innerHTML = recentLogs.map((log, index) => 
+                    `<div class="log-entry text-sm text-slate-600 dark:text-slate-300 mono p-4 bg-white/50 dark:bg-slate-700/50 rounded-xl backdrop-blur-sm" style="animation-delay: ${index * 0.1}s">${log}</div>`
+                ).join('');
+                container.scrollTop = container.scrollHeight;
+            }
+        }
+
+        function loadDataPage() {
+            document.getElementById('data-content').innerHTML = `
+                <div class="text-center py-16">
+                    <div class="loading-spinner mx-auto mb-6"></div>
+                    <p class="text-xl text-slate-600 dark:text-slate-400">กำลังโหลดข้อมูลจาก Google Sheets...</p>
+                </div>`;
+            
+            loadGoogleSheetData()
+                .then(data => {
+                    const tableHtml = createDataTable(data);
+                    document.getElementById('data-content').innerHTML = tableHtml;
+                    document.getElementById('data-summary').textContent = `พบข้อมูล ${data.length - 1} รายการจาก Google Sheets (${SHEET_NAME}) - แสดง 10 รายการล่าสุด`;
+                    
+                    // Initialize table features after content is loaded
+                    setTimeout(initializeTableFeatures, 100);
+                    
+                    showToast('โหลดข้อมูลจาก Google Sheets สำเร็จ!', 'success');
+                })
+                .catch(error => {
+                    document.getElementById('data-content').innerHTML = `
+                        <div class="text-center py-16">
+                            <i class="fas fa-exclamation-triangle text-6xl text-red-500 mb-6"></i>
+                            <p class="text-xl text-slate-600 dark:text-slate-400 mb-4">ไม่สามารถโหลดข้อมูลได้</p>
+                            <p class="text-sm text-slate-500 dark:text-slate-400">${error.message}</p>
+                            <button onclick="loadDataPage()" class="mt-4 btn-primary text-white px-6 py-2 rounded-xl">
+                                <i class="fas fa-redo mr-2"></i>ลองใหม่
+                            </button>
+                        </div>`;
+                    document.getElementById('data-summary').textContent = 'เกิดข้อผิดพลาดในการโหลดข้อมูล';
+                    showToast('ไม่สามารถโหลดข้อมูลจาก Google Sheets ได้: ' + error.message, 'error');
+                });
+        }
+
+        function loadSettingsPage() {
+            document.getElementById('settings-content').innerHTML = `
+                <div class="text-center py-16">
+                    <i class="fas fa-cogs text-6xl text-purple-500 mb-6 loading-brain"></i>
+                    <p class="text-xl text-slate-600 dark:text-slate-400">Loading neural parameters...</p>
+                </div>`;
+            
+            fetch('/settings')
+                .then(response => response.text())
+                .then(html => {
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html, 'text/html');
+                    const content = doc.querySelector('.max-w-4xl')?.innerHTML || 'Settings unavailable';
+                    document.getElementById('settings-content').innerHTML = content;
+                })
+                .catch(error => {
+                    document.getElementById('settings-content').innerHTML = `
+                        <div class="text-center py-16">
+                            <i class="fas fa-exclamation-triangle text-6xl text-amber-500 mb-6"></i>
+                            <p class="text-xl text-slate-600 dark:text-slate-400">Neural configuration unavailable</p>
+                        </div>`;
+                });
+        }
+
+        function loadLogsPage() {
+            document.getElementById('logs-content').innerHTML = `
+                <div class="text-center py-16">
+                    <i class="fas fa-file-code text-6xl text-orange-500 mb-6 loading-brain"></i>
+                    <p class="text-xl text-slate-600 dark:text-slate-400">Compiling neural log data...</p>
+                </div>`;
+            
+            fetch('/logs')
+                .then(response => response.text())
+                .then(html => {
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html, 'text/html');
+                    const content = doc.querySelector('.max-w-6xl')?.innerHTML || 'Logs unavailable';
+                    document.getElementById('logs-content').innerHTML = content;
+                })
+                .catch(error => {
+                    document.getElementById('logs-content').innerHTML = `
+                        <div class="text-center py-16">
+                            <i class="fas fa-exclamation-triangle text-6xl text-amber-500 mb-6"></i>
+                            <p class="text-xl text-slate-600 dark:text-slate-400">Neural log system unavailable</p>
+                        </div>`;
+                });
+        }
+
+        function refreshData() {
+            if (currentPage === 'data') {
+                loadDataPage();
+            }
+        }
+
+        // Initialize
+        updateStatus();
+        
+        // Auto-refresh every 30 seconds when not actively scraping
+        setInterval(() => {
+            if (!statusInterval) {
+                updateStatus();
+            }
+        }, 30000);
+
+        // Add some initial animation on load
+        setTimeout(() => {
+            document.querySelectorAll('.floating-card').forEach((card, index) => {
+                setTimeout(() => {
+                    card.style.opacity = '1';
+                    card.style.transform = 'translateY(0)';
+                }, index * 100);
+            });
+        }, 500);
+    </script>
 </body>
 </html>
