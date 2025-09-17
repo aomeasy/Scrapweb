@@ -137,39 +137,58 @@ class GoogleSheetManager:
         except Exception as e:
             logger.error(f"❌ Could not fetch existing Job_Nos from '{worksheet_name}': {e}")
             return set()
-    
+            
     def get_job_data_with_positions(self, worksheet_name: str) -> Dict[str, Dict]:
-        """ดึงข้อมูล Job_No พร้อมตำแหน่งแถวและคอลัมน์ Status"""
-        try:
-            ws = self.get_or_create_worksheet(worksheet_name)
-            all_data = ws.get_all_records()
-            headers = ws.row_values(1)
+    """ดึงข้อมูล Job_No พร้อมตำแหน่งแถวและคอลัมน์ Status"""
+    try:
+        ws = self.get_or_create_worksheet(worksheet_name)
+        all_data = ws.get_all_records()
+        headers = ws.row_values(1)
+        
+        # ✅ หา index ของคอลัมน์ Job_No และ Source_Tab (ปรับปรุงการค้นหา)
+        job_no_col_idx = None
+        source_tab_col_idx = None
+        
+        for idx, header in enumerate(headers):
+            header_str = str(header).strip()
             
-            # หา index ของคอลัมน์ Job_No และ Source_Tab
-            job_no_col_idx = None
-            source_tab_col_idx = None
+            # หา Job_No column (ให้ความสำคัญกับ Job_No มากกว่า Job No.)
+            if header_str == 'Job_No':
+                job_no_col_idx = idx + 1  # gspread uses 1-based indexing
+            elif job_no_col_idx is None and ('job' in header_str.lower() and 'no' in header_str.lower()):
+                job_no_col_idx = idx + 1
+                
+            # หา Source_Tab column
+            elif header_str == 'Source_Tab':
+                source_tab_col_idx = idx + 1
+        
+        if job_no_col_idx is None:
+            logger.warning(f"⚠️ No Job_No column found in {worksheet_name}")
+            return {}
+        
+        job_positions = {}
+        for row_idx, row_data in enumerate(all_data, start=2):  # start=2 เพราะแถว 1 คือ header
+            # ✅ ใช้ชื่อคอลัมน์ที่พบจริง
+            job_no_key = None
+            for key in row_data.keys():
+                if key == 'Job_No' or ('job' in str(key).lower() and 'no' in str(key).lower()):
+                    job_no_key = key
+                    break
             
-            for idx, header in enumerate(headers):
-                if 'job' in str(header).lower() and 'no' in str(header).lower():
-                    job_no_col_idx = idx + 1  # gspread uses 1-based indexing
-                elif header == 'Source_Tab':
-                    source_tab_col_idx = idx + 1
-            
-            job_positions = {}
-            for row_idx, row_data in enumerate(all_data, start=2):  # start=2 เพราะแถว 1 คือ header
-                job_no = str(row_data.get('Job_No', '')).strip() if 'Job_No' in row_data else ''
+            if job_no_key:
+                job_no = str(row_data.get(job_no_key, '')).strip()
                 if job_no:
                     job_positions[job_no] = {
                         'row': row_idx,
                         'source_tab_col': source_tab_col_idx,
                         'current_status': row_data.get('Source_Tab', '')
                     }
-            
-            logger.info(f"Found {len(job_positions)} existing jobs with positions in '{worksheet_name}'.")
-            return job_positions
-        except Exception as e:
-            logger.error(f"❌ Could not fetch job data with positions from '{worksheet_name}': {e}")
-            return {}
+        
+        logger.info(f"Found {len(job_positions)} existing jobs with positions in '{worksheet_name}'.")
+        return job_positions
+    except Exception as e:
+        logger.error(f"❌ Could not fetch job data with positions from '{worksheet_name}': {e}")
+        return {}
     
     def update_job_status(self, worksheet_name: str, job_no: str, new_status: str, row: int, col: int):
         """อัปเดตสถานะของงานที่มีอยู่แล้ว"""
