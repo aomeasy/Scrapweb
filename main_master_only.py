@@ -321,7 +321,7 @@ class JobSyncApplication:
             config.GOOGLE_SVC_JSON_B64
         )
         self.scraper = WebScraper(config.EDOCLITE_USER, config.EDOCLITE_PASS)
-    
+  
 
 def _process_and_add_new_jobs(self, all_tab_data: Dict[int, pd.DataFrame]) -> Tuple[int, int]:
     """กรองเฉพาะ Job ใหม่และเพิ่มลงใน Master Sheet หรือ อัปเดตสถานะของงานเดิม"""
