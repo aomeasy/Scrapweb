@@ -50,7 +50,80 @@ def run_scraping_sync():
         app_instance = JobSyncApplication(app_config)
         
         scraping_status['progress'] = 'กำลังดำเนินการ...'
-        app_instance.run()
+        
+        # ✅ เปลี่ยนจาก app_instance.run() เป็น:
+        # ตรวจสอบว่ามี method run หรือไม่
+        if hasattr(app_instance, 'run'):
+            app_instance.run()
+        elif hasattr(app_instance, 'execute'):
+            app_instance.execute()
+        elif hasattr(app_instance, 'start'):
+            app_instance.start()
+        else:
+            # หากไม่มี method run ให้สร้างการทำงานเอง
+            add_log('⚠️ No run method found, creating manual execution...')
+            
+            # Manual execution
+            start_time = datetime.now()
+            app_instance.sheet_manager.log_activity("Sync Start", "เริ่มต้นกระบวนการซิงค์งาน")
+            
+            all_tab_data = {}
+            successful_tabs, failed_tabs = [], []
+            
+            # สร้าง WebDriver
+            driver = app_instance.scraper.create_driver()
+            
+            try:
+                # Login
+                logged_in, driver = app_instance.scraper.login(driver)
+                if not logged_in:
+                    app_instance.notifier.send("❌ ข้อผิดพลาดร้ายแรง: เข้าสู่ระบบ edoclite ไม่ได้")
+                    app_instance.sheet_manager.log_activity("Login Failed", "ไม่สามารถเข้าสู่ระบบได้", "Failed")
+                    raise Exception("Login failed")
+                
+                # Scrape แต่ละ tab
+                for tab in app_instance.config.TABS_TO_SCRAPE:
+                    scraping_status['progress'] = f'กำลังกวาดข้อมูลจากแท็บ {tab}...'
+                    add_log(f'📊 Scraping tab {tab}...')
+                    
+                    df = app_instance.scraper.extract_data_from_tab(driver, tab)
+                    if not df.empty:
+                        all_tab_data[tab] = df
+                        successful_tabs.append(tab)
+                        add_log(f'✅ Tab {tab}: Found {len(df)} records')
+                    else:
+                        failed_tabs.append(tab)
+                        add_log(f'⚠️ Tab {tab}: No data found')
+                    
+                    time.sleep(1)
+            
+            finally:
+                # ปิด browser
+                driver.quit()
+            
+            # ประมวลผลและเพิ่มข้อมูลใหม่
+            scraping_status['progress'] = 'กำลังประมวลผลข้อมูล...'
+            add_log('🔄 Processing scraped data...')
+            
+            new_jobs_count, updated_jobs_count = app_instance._process_and_add_new_jobs(all_tab_data)
+            
+            end_time = datetime.now()
+            duration = (end_time - start_time).total_seconds()
+            
+            # Log summary
+            summary_details = f"เพิ่มงานใหม่ {new_jobs_count} งาน, อัปเดตสถานะ {updated_jobs_count} งาน. แท็บสำเร็จ: {len(successful_tabs)}. แท็บล้มเหลว: {len(failed_tabs)}."
+            status = "Success" if not failed_tabs else "Partial Success"
+            app_instance.sheet_manager.log_activity("Sync Complete", summary_details, status)
+            
+            # Send final notification
+            summary_msg = f"""✅ ซิงค์งานเสร็จสิ้น!
+- 🆕 พบและเพิ่มงานใหม่: {new_jobs_count} งาน
+- 🔄 อัปเดตสถานะงาน: {updated_jobs_count} งาน
+- 🗂️ แท็บที่ดึงข้อมูลได้: {len(successful_tabs)}/{len(app_instance.config.TABS_TO_SCRAPE)}
+- ⏱️ ใช้เวลา: {duration:.2f} วินาที"""
+            
+            app_instance.notifier.send(summary_msg)
+            add_log(f'🎉 Job synchronization completed in {duration:.2f} seconds')
         
         scraping_status['last_result'] = 'สำเร็จ'
         scraping_status['progress'] = 'เสร็จสิ้น'
@@ -60,10 +133,14 @@ def run_scraping_sync():
         scraping_status['last_result'] = f'ข้อผิดพลาด: {str(e)}'
         scraping_status['progress'] = 'เกิดข้อผิดพลาด'
         add_log(f'❌ Error during synchronization: {str(e)}')
+        
+        # Log additional error info for debugging
+        import traceback
+        add_log(f'🔍 Error details: {traceback.format_exc()}')
+        
     finally:
         scraping_status['is_running'] = False
         scraping_status['last_run'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-
 def run_scraping_thread():
     """Run scraping in a separate thread"""
     run_scraping_sync()
