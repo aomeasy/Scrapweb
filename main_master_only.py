@@ -194,7 +194,12 @@ class GoogleSheetManager:
     def log_activity(self, activity: str, details: str = "", status: str = "Success"):
         try:
             ws = self.get_or_create_worksheet(Config.LOG_SHEET_NAME, headers=['Timestamp', 'Activity', 'Details', 'Status'])
-            ts = datetime.now(timezone.utc).isoformat()
+            
+            # ใช้เวลาประเทศไทย
+            thailand_tz = pytz.timezone('Asia/Bangkok')
+            thailand_time = datetime.now(thailand_tz)
+            ts = thailand_time.strftime('%d/%m/%Y %H:%M:%S')
+            
             ws.insert_row([ts, activity, details, status], 2)
         except Exception as e:
             logger.error(f"❌ Failed to log activity: {e}")
