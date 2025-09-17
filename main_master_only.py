@@ -322,89 +322,122 @@ class JobSyncApplication:
         )
         self.scraper = WebScraper(config.EDOCLITE_USER, config.EDOCLITE_PASS)
   
+# ในไฟล์ main_master_only.py
+# แก้ไขใน method _process_and_add_new_jobs
 
-def _process_and_add_new_jobs(self, all_tab_data: Dict[int, pd.DataFrame]) -> Tuple[int, int]:
-    """กรองเฉพาะ Job ใหม่และเพิ่มลงใน Master Sheet หรือ อัปเดตสถานะของงานเดิม"""
-    logger.info("Processing jobs: checking for new jobs and status updates...")
-    
-    # สร้าง Thailand timezone
-    thailand_tz = pytz.timezone('Asia/Bangkok')
-    
-    # ดึงข้อมูล Job ที่มีอยู่แล้วพร้อมตำแหน่ง
-    existing_jobs = self.sheet_manager.get_job_data_with_positions(self.config.MASTER_SHEET_NAME)
-    
-    new_records_to_add = []
-    updated_jobs_count = 0
-    all_headers = set(['Job_No', 'Source_Tab', 'First_Seen'])
-
-    for tab_num, df in all_tab_data.items():
-        if df.empty:
-            continue
+    def _process_and_add_new_jobs(self, all_tab_data: Dict[int, pd.DataFrame]) -> Tuple[int, int]:
+        """กรองเฉพาะ Job ใหม่และเพิ่มลงใน Master Sheet หรือ อัปเดตสถานะของงานเดิม"""
+        logger.info("Processing jobs: checking for new jobs and status updates...")
         
-        # เก็บ Headers ทั้งหมดเพื่อสร้างชีตให้สมบูรณ์
-        for col in df.columns:
-            all_headers.add(str(col))
-
-        tab_name = self.config.TAB_NAMES.get(tab_num, f"Tab_{tab_num}")
-        job_no_col = next((col for col in df.columns if 'job' in str(col).lower()), None)
-        if not job_no_col:
-            logger.warning(f"⚠️ No 'Job No.' column found in tab {tab_num}. Skipping.")
-            continue
-
-        for _, row in df.iterrows():
-            job_no = str(row[job_no_col]).strip()
-            if not job_no:
-                continue  # ข้ามถ้าไม่มี Job No
+        # สร้าง Thailand timezone
+        thailand_tz = pytz.timezone('Asia/Bangkok')
+        
+        # ดึงข้อมูล Job ที่มีอยู่แล้วพร้อมตำแหน่ง
+        existing_jobs = self.sheet_manager.get_job_data_with_positions(self.config.MASTER_SHEET_NAME)
+        
+        new_records_to_add = []
+        updated_jobs_count = 0
+        
+        # ✅ กำหนด headers ที่ต้องการ (ไม่ซ้ำกัน)
+        all_headers = set(['Job_No', 'Source_Tab', 'First_Seen'])  # ใช้ Job_No เท่านั้น
+    
+        for tab_num, df in all_tab_data.items():
+            if df.empty:
+                continue
             
-            # ตรวจสอบว่า Job No มีอยู่แล้วหรือไม่
-            if job_no in existing_jobs:
-                # มีอยู่แล้ว - ตรวจสอบว่าสถานะเปลี่ยนหรือไม่
-                current_status = existing_jobs[job_no]['current_status']
-                if current_status != tab_name:
-                    # สถานะเปลี่ยน - อัปเดต
-                    self.sheet_manager.update_job_status(
-                        self.config.MASTER_SHEET_NAME,
-                        job_no,
-                        tab_name,
-                        existing_jobs[job_no]['row'],
-                        existing_jobs[job_no]['source_tab_col']
-                    )
-                    updated_jobs_count += 1
-                    self.notifier.send(f"🔄 อัปเดตสถานะงาน: {job_no}\n   จาก: {current_status}\n   เป็น: {tab_name}")
+            # เก็บ Headers จากข้อมูลต้นฉบับ (ยกเว้น Job No. ที่ซ้ำ)
+            for col in df.columns:
+                col_str = str(col)
+                # ✅ ไม่เพิ่มคอลัมน์ที่มี "job" และ "no" ซ้ำกัน
+                if not (('job' in col_str.lower() and 'no' in col_str.lower()) or col_str.lower() == 'job no.'):
+                    all_headers.add(col_str)
+    
+            tab_name = self.config.TAB_NAMES.get(tab_num, f"Tab_{tab_num}")
+            
+            # หาคอลัมน์ที่มี Job No (อาจชื่อต่างกัน)
+            job_no_col = None
+            for col in df.columns:
+                col_str = str(col).lower()
+                if 'job' in col_str and ('no' in col_str or 'number' in col_str):
+                    job_no_col = col
+                    break
+            
+            if not job_no_col:
+                logger.warning(f"⚠️ No 'Job No.' column found in tab {tab_num}. Skipping.")
+                continue
+    
+            for _, row in df.iterrows():
+                job_no = str(row[job_no_col]).strip()
+                if not job_no:
+                    continue  # ข้ามถ้าไม่มี Job No
+                
+                # ตรวจสอบว่า Job No มีอยู่แล้วหรือไม่
+                if job_no in existing_jobs:
+                    # มีอยู่แล้ว - ตรวจสอบว่าสถานะเปลี่ยนหรือไม่
+                    current_status = existing_jobs[job_no]['current_status']
+                    if current_status != tab_name:
+                        # สถานะเปลี่ยน - อัปเดต
+                        self.sheet_manager.update_job_status(
+                            self.config.MASTER_SHEET_NAME,
+                            job_no,
+                            tab_name,
+                            existing_jobs[job_no]['row'],
+                            existing_jobs[job_no]['source_tab_col']
+                        )
+                        updated_jobs_count += 1
+                        self.notifier.send(f"🔄 อัปเดตสถานะงาน: {job_no}\n   จาก: {current_status}\n   เป็น: {tab_name}")
+                else:
+                    # ไม่มี - เพิ่มใหม่
+                    new_record = {}
+                    
+                    # ✅ คัดลอกข้อมูลจากแถวต้นฉบับ (ยกเว้นคอลัมน์ Job ที่ซ้ำ)
+                    for col, val in row.items():
+                        col_str = str(col)
+                        # ไม่เพิ่มคอลัมน์ Job No. ที่ซ้ำ
+                        if not (('job' in col_str.lower() and 'no' in col_str.lower()) or col_str.lower() == 'job no.'):
+                            new_record[col_str] = str(val)
+                    
+                    # เพิ่มข้อมูลพิเศษ
+                    new_record['Job_No'] = job_no  # ✅ ใช้ชื่อเดียวเท่านั้น
+                    new_record['Source_Tab'] = tab_name
+                    
+                    # สร้าง First_Seen ด้วยเวลาประเทศไทย
+                    thailand_time = datetime.now(thailand_tz)
+                    new_record['First_Seen'] = thailand_time.strftime('%d/%m/%Y %H:%M:%S')
+                    
+                    new_records_to_add.append(new_record)
+                    existing_jobs[job_no] = {'current_status': tab_name}  
+                    self.notifier.send(f"🆕 งานใหม่: {job_no} (จาก {tab_name})")
+    
+        # เพิ่มงานใหม่ลง Sheet
+        if new_records_to_add:
+            # ตรวจสอบและสร้าง Header ให้ Master Sheet หากยังไม่มี
+            master_ws = self.sheet_manager.get_or_create_worksheet(self.config.MASTER_SHEET_NAME)
+            
+            # ✅ เรียงลำดับ headers ให้ Job_No อยู่คอลัมน์แรก
+            final_headers = ['Job_No', 'First_Seen', 'Source_Tab'] + sorted([h for h in all_headers if h not in ['Job_No', 'First_Seen', 'Source_Tab']])
+            
+            if master_ws.row_count == 1 and master_ws.col_count == 1 and master_ws.cell(1,1).value is None:
+                # Sheet is empty, write headers
+                master_ws.update("A1", [final_headers])
             else:
-                # ไม่มี - เพิ่มใหม่
-                new_record = {str(col): str(val) for col, val in row.items()}
-                new_record['Job_No'] = job_no
-                new_record['Source_Tab'] = tab_name
+                # ตรวจสอบ headers ที่มีอยู่แล้ว
+                existing_headers = master_ws.row_values(1)
                 
-                # ✅ สร้าง First_Seen ด้วยเวลาประเทศไทย
-                thailand_time = datetime.now(thailand_tz)
-                new_record['First_Seen'] = thailand_time.strftime('%d/%m/%Y %H:%M:%S')
-                
-                new_records_to_add.append(new_record)
-                existing_jobs[job_no] = {'current_status': tab_name}  # เพิ่มเข้าไปเพื่อป้องกันการเพิ่มซ้ำในรอบเดียวกัน
-                self.notifier.send(f"🆕 งานใหม่: {job_no} (จาก {tab_name})")
-
-    # เพิ่มงานใหม่ลง Sheet
-    if new_records_to_add:
-        # ตรวจสอบและสร้าง Header ให้ Master Sheet หากยังไม่มี
-        master_ws = self.sheet_manager.get_or_create_worksheet(self.config.MASTER_SHEET_NAME)
-        if master_ws.row_count == 1 and master_ws.col_count == 1 and master_ws.cell(1,1).value is None:
-            # Sheet is empty, write headers
-            final_headers = sorted(list(all_headers))
-            master_ws.update("A1", [final_headers])
-        else:
-            final_headers = master_ws.row_values(1)
-
-        # แปลง dicts เป็น list of lists ตามลำดับ header
-        rows_to_append = []
-        for record in new_records_to_add:
-            row = [record.get(h, "") for h in final_headers]
-            rows_to_append.append(row)
-        
-        self.sheet_manager.append_rows(self.config.MASTER_SHEET_NAME, rows_to_append)
-
-    return len(new_records_to_add), updated_jobs_count
+                # ถ้า headers ไม่ตรงกัน ให้อัปเดต
+                if set(existing_headers) != set(final_headers):
+                    logger.info("📋 Updating sheet headers to remove duplicates...")
+                    master_ws.update("A1", [final_headers])
+    
+            # แปลง dicts เป็น list of lists ตามลำดับ header
+            rows_to_append = []
+            for record in new_records_to_add:
+                row = [record.get(h, "") for h in final_headers]
+                rows_to_append.append(row)
+            
+            self.sheet_manager.append_rows(self.config.MASTER_SHEET_NAME, rows_to_append)
+    
+        return len(new_records_to_add), updated_jobs_count
 
     def run(self):
         """ฟังก์ชันหลักสำหรับรันกระบวนการทั้งหมด"""
