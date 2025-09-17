@@ -344,11 +344,15 @@ class JobSyncApplication:
 # ในไฟล์ main_master_only.py
 # แก้ไขใน method _process_and_add_new_jobs
 
+# ในไฟล์ main_master_only.py
+# แก้ไข method _process_and_add_new_jobs
+
     def _process_and_add_new_jobs(self, all_tab_data: Dict[int, pd.DataFrame]) -> Tuple[int, int]:
         """กรองเฉพาะ Job ใหม่และเพิ่มลงใน Master Sheet หรือ อัปเดตสถานะของงานเดิม"""
         logger.info("Processing jobs: checking for new jobs and status updates...")
         
         # สร้าง Thailand timezone
+        import pytz
         thailand_tz = pytz.timezone('Asia/Bangkok')
         
         # ดึงข้อมูล Job ที่มีอยู่แล้วพร้อมตำแหน่ง
@@ -357,8 +361,8 @@ class JobSyncApplication:
         new_records_to_add = []
         updated_jobs_count = 0
         
-        # ✅ กำหนด headers ที่ต้องการ (ไม่ซ้ำกัน)
-        all_headers = set(['Job_No', 'Source_Tab', 'First_Seen'])  # ใช้ Job_No เท่านั้น
+        # กำหนด headers ที่ต้องการ
+        all_headers = set(['Job_No', 'Source_Tab', 'First_Seen', 'Last_Updated'])
     
         for tab_num, df in all_tab_data.items():
             if df.empty:
@@ -367,13 +371,12 @@ class JobSyncApplication:
             # เก็บ Headers จากข้อมูลต้นฉบับ (ยกเว้น Job No. ที่ซ้ำ)
             for col in df.columns:
                 col_str = str(col)
-                # ✅ ไม่เพิ่มคอลัมน์ที่มี "job" และ "no" ซ้ำกัน
                 if not (('job' in col_str.lower() and 'no' in col_str.lower()) or col_str.lower() == 'job no.'):
                     all_headers.add(col_str)
     
             tab_name = self.config.TAB_NAMES.get(tab_num, f"Tab_{tab_num}")
             
-            # หาคอลัมน์ที่มี Job No (อาจชื่อต่างกัน)
+            # หาคอลัมน์ที่มี Job No
             job_no_col = None
             for col in df.columns:
                 col_str = str(col).lower()
@@ -390,65 +393,76 @@ class JobSyncApplication:
                 if not job_no:
                     continue  # ข้ามถ้าไม่มี Job No
                 
+                # ✅ สร้าง timestamp ปัจจุบันสำหรับ Last_Updated
+                current_time = datetime.now(thailand_tz)
+                last_updated_time = current_time.strftime('%d/%m/%Y %H:%M:%S')
+                
                 # ตรวจสอบว่า Job No มีอยู่แล้วหรือไม่
                 if job_no in existing_jobs:
-                    # มีอยู่แล้ว - ตรวจสอบว่าสถานะเปลี่ยนหรือไม่
+                    # ✅ งานเดิม - อัปเดต Last_Updated และตรวจสอบสถานะ
                     current_status = existing_jobs[job_no]['current_status']
+                    job_row = existing_jobs[job_no]['row']
+                    source_tab_col = existing_jobs[job_no]['source_tab_col']
+                    
+                    # หาคอลัมน์ Last_Updated
+                    last_updated_col = self.sheet_manager.find_column_index(self.config.MASTER_SHEET_NAME, 'Last_Updated')
+                    
+                    # ✅ อัปเดต Last_Updated ทุกครั้งที่พบงาน (ไม่ว่าสถานะจะเปลี่ยนหรือไม่)
+                    if last_updated_col:
+                        self.sheet_manager.update_cell(self.config.MASTER_SHEET_NAME, job_row, last_updated_col, last_updated_time)
+                        logger.info(f"🕒 Updated Last_Updated for {job_no}: {last_updated_time}")
+                    
+                    # ตรวจสอบการเปลี่ยนแปลงสถานะ
                     if current_status != tab_name:
-                        # สถานะเปลี่ยน - อัปเดต
-                        self.sheet_manager.update_job_status(
-                            self.config.MASTER_SHEET_NAME,
-                            job_no,
-                            tab_name,
-                            existing_jobs[job_no]['row'],
-                            existing_jobs[job_no]['source_tab_col']
-                        )
+                        # ✅ สถานะเปลี่ยน - อัปเดต Source_Tab
+                        if source_tab_col:
+                            self.sheet_manager.update_cell(self.config.MASTER_SHEET_NAME, job_row, source_tab_col, tab_name)
+                        
                         updated_jobs_count += 1
-                        self.notifier.send(f"🔄 อัปเดตสถานะงาน: {job_no}\n   จาก: {current_status}\n   เป็น: {tab_name}")
+                        logger.info(f"🔄 Status changed for {job_no}: {current_status} → {tab_name}")
+                        self.notifier.send(f"🔄 อัปเดตสถานะงาน: {job_no}\n   จาก: {current_status}\n   เป็น: {tab_name}\n   เวลา: {last_updated_time}")
+                    else:
+                        # ✅ สถานะไม่เปลี่ยน - แต่ยัง stamp เวลาแล้ว
+                        logger.info(f"✅ Job {job_no} still active in {tab_name} (Last_Updated: {last_updated_time})")
+                    
                 else:
-                    # ไม่มี - เพิ่มใหม่
+                    # ✅ งานใหม่ - เพิ่มใหม่
                     new_record = {}
                     
-                    # ✅ คัดลอกข้อมูลจากแถวต้นฉบับ (ยกเว้นคอลัมน์ Job ที่ซ้ำ)
+                    # คัดลอกข้อมูลจากแถวต้นฉบับ
                     for col, val in row.items():
                         col_str = str(col)
-                        # ไม่เพิ่มคอลัมน์ Job No. ที่ซ้ำ
                         if not (('job' in col_str.lower() and 'no' in col_str.lower()) or col_str.lower() == 'job no.'):
                             new_record[col_str] = str(val)
                     
                     # เพิ่มข้อมูลพิเศษ
-                    new_record['Job_No'] = job_no  # ✅ ใช้ชื่อเดียวเท่านั้น
+                    new_record['Job_No'] = job_no
                     new_record['Source_Tab'] = tab_name
-                    
-                    # สร้าง First_Seen ด้วยเวลาประเทศไทย
-                    thailand_time = datetime.now(thailand_tz)
-                    new_record['First_Seen'] = thailand_time.strftime('%d/%m/%Y %H:%M:%S')
+                    new_record['First_Seen'] = last_updated_time  # ใช้เวลาเดียวกัน
+                    new_record['Last_Updated'] = last_updated_time  # ✅ เพิ่ม Last_Updated
                     
                     new_records_to_add.append(new_record)
-                    existing_jobs[job_no] = {'current_status': tab_name}  
-                    self.notifier.send(f"🆕 งานใหม่: {job_no} (จาก {tab_name})")
+                    existing_jobs[job_no] = {'current_status': tab_name}
+                    
+                    logger.info(f"🆕 New job found: {job_no} in {tab_name} (Time: {last_updated_time})")
+                    self.notifier.send(f"🆕 งานใหม่: {job_no} (จาก {tab_name})\n   เวลา: {last_updated_time}")
     
         # เพิ่มงานใหม่ลง Sheet
         if new_records_to_add:
-            # ตรวจสอบและสร้าง Header ให้ Master Sheet หากยังไม่มี
             master_ws = self.sheet_manager.get_or_create_worksheet(self.config.MASTER_SHEET_NAME)
             
-            # ✅ เรียงลำดับ headers ให้ Job_No อยู่คอลัมน์แรก
-            final_headers = ['Job_No', 'First_Seen', 'Source_Tab'] + sorted([h for h in all_headers if h not in ['Job_No', 'First_Seen', 'Source_Tab']])
+            # เรียงลำดับ headers ให้ Job_No อยู่คอลัมน์แรก
+            final_headers = ['Job_No', 'First_Seen', 'Last_Updated', 'Source_Tab'] + sorted([h for h in all_headers if h not in ['Job_No', 'First_Seen', 'Last_Updated', 'Source_Tab']])
             
             if master_ws.row_count == 1 and master_ws.col_count == 1 and master_ws.cell(1,1).value is None:
-                # Sheet is empty, write headers
                 master_ws.update("A1", [final_headers])
             else:
-                # ตรวจสอบ headers ที่มีอยู่แล้ว
                 existing_headers = master_ws.row_values(1)
-                
-                # ถ้า headers ไม่ตรงกัน ให้อัปเดต
                 if set(existing_headers) != set(final_headers):
-                    logger.info("📋 Updating sheet headers to remove duplicates...")
+                    logger.info("📋 Updating sheet headers...")
                     master_ws.update("A1", [final_headers])
     
-            # แปลง dicts เป็น list of lists ตามลำดับ header
+            # แปลง dicts เป็น list of lists
             rows_to_append = []
             for record in new_records_to_add:
                 row = [record.get(h, "") for h in final_headers]
@@ -456,10 +470,16 @@ class JobSyncApplication:
             
             self.sheet_manager.append_rows(self.config.MASTER_SHEET_NAME, rows_to_append)
     
+        logger.info(f"📊 Processing completed: {len(new_records_to_add)} new jobs, {updated_jobs_count} status updates")
         return len(new_records_to_add), updated_jobs_count
+
+# ในไฟล์ main_master_only.py
+# ปรับปรุง method run ใน class JobSyncApplication
 
     def run(self):
         """ฟังก์ชันหลักสำหรับรันกระบวนการทั้งหมด"""
+        import time
+        
         start_time = datetime.now()
         self.sheet_manager.log_activity("Sync Start", "เริ่มต้นกระบวนการซิงค์งาน")
         
@@ -475,46 +495,79 @@ class JobSyncApplication:
             if not logged_in:
                 self.notifier.send("❌ ข้อผิดพลาดร้ายแรง: เข้าสู่ระบบ edoclite ไม่ได้ กรุณาตรวจสอบ username/password")
                 self.sheet_manager.log_activity("Login Failed", "ไม่สามารถเข้าสู่ระบบได้", "Failed")
-                return
+                raise Exception("Login failed to edoclite system")
+            
+            logger.info("✅ Successfully logged into edoclite system")
             
             # Scrape แต่ละ tab
             for tab in self.config.TABS_TO_SCRAPE:
-                df = self.scraper.extract_data_from_tab(driver, tab)
-                if not df.empty:
-                    all_tab_data[tab] = df
-                    successful_tabs.append(tab)
-                else:
+                try:
+                    logger.info(f"📊 Starting to scrape tab {tab}...")
+                    df = self.scraper.extract_data_from_tab(driver, tab)
+                    if not df.empty:
+                        all_tab_data[tab] = df
+                        successful_tabs.append(tab)
+                        logger.info(f"✅ Tab {tab}: Successfully scraped {len(df)} records")
+                    else:
+                        failed_tabs.append(tab)
+                        logger.warning(f"⚠️ Tab {tab}: No data found")
+                except Exception as tab_error:
                     failed_tabs.append(tab)
-                time.sleep(1)
+                    logger.error(f"❌ Tab {tab}: Error - {str(tab_error)}")
+                
+                time.sleep(2)  # เพิ่มระยะเวลารอระหว่าง tab
         
+        except Exception as main_error:
+            logger.error(f"💥 Critical error during scraping: {str(main_error)}")
+            raise
         finally:
-            # ปิด browser
-            driver.quit()
+            if driver:
+                driver.quit()
+                logger.info("🌐 Browser closed successfully")
         
         # ประมวลผลและเพิ่มข้อมูลใหม่ หรือ อัปเดตสถานะ
+        logger.info("🔄 Processing scraped data...")
         new_jobs_count, updated_jobs_count = self._process_and_add_new_jobs(all_tab_data)
+        
+        # ✅ คำนวณสถิติเพิ่มเติม
+        total_jobs_processed = sum(len(df) for df in all_tab_data.values())
+        timestamp_jobs_updated = total_jobs_processed  # ทุกงานที่พบจะได้ timestamp
         
         end_time = datetime.now()
         duration = (end_time - start_time).total_seconds()
         
         # Log summary
-        summary_details = f"เพิ่มงานใหม่ {new_jobs_count} งาน, อัปเดตสถานะ {updated_jobs_count} งาน. แท็บสำเร็จ: {len(successful_tabs)}. แท็บล้มเหลว: {len(failed_tabs)}."
+        summary_details = f"เพิ่มงานใหม่ {new_jobs_count} งาน, อัปเดตสถานะ {updated_jobs_count} งาน, อัปเดต timestamp {timestamp_jobs_updated} งาน. แท็บสำเร็จ: {len(successful_tabs)}. แท็บล้มเหลว: {len(failed_tabs)}."
         status = "Success" if not failed_tabs else "Partial Success"
         self.sheet_manager.log_activity("Sync Complete", summary_details, status)
         
-        # Send final notification
-        summary_msg = f"""
-        ✅ ซิงค์งานเสร็จสิ้น!
+        # Send enhanced final notification
+        summary_msg = f"""✅ ซิงค์งานเสร็จสิ้น!
+    
+    🆕 พบและเพิ่มงานใหม่: {new_jobs_count} งาน
+    🔄 อัปเดตสถานะงาน: {updated_jobs_count} งาน  
+    🕒 อัปเดต timestamp: {timestamp_jobs_updated} งาน
+    📊 ประมวลผลทั้งหมด: {total_jobs_processed} งาน
+    🗂️ แท็บที่ดึงข้อมูลได้: {len(successful_tabs)}/{len(self.config.TABS_TO_SCRAPE)}
+    ⏱️ ใช้เวลา: {duration:.2f} วินาที
+    
+    📋 สรุป: ทุกงานที่ยังอยู่ในระบบจะได้รับการ stamp เวลา Last_Updated ใหม่
+    
+    🔗 Master Sheet: https://docs.google.com/spreadsheets/d/{self.config.GOOGLE_SHEET_ID}"""
         
-        - 🆕 พบและเพิ่มงานใหม่: {new_jobs_count} งาน
-        - 🔄 อัปเดตสถานะงาน: {updated_jobs_count} งาน
-        - 🗂️ แท็บที่ดึงข้อมูลได้: {len(successful_tabs)}/{len(self.config.TABS_TO_SCRAPE)}
-        - ⏱️ ใช้เวลา: {duration:.2f} วินาที
-        
-        🔗 Master Sheet: https://docs.google.com/spreadsheets/d/{self.config.GOOGLE_SHEET_ID}
-        """.strip()
         self.notifier.send(summary_msg)
-        logger.info(f"🎉 กระบวนการเสร็จสิ้นใน {duration:.2f} วินาที")
+        logger.info(f"🎉 Job synchronization completed successfully in {duration:.2f} seconds")
+        
+        return {
+            'success': True,
+            'new_jobs': new_jobs_count,
+            'updated_jobs': updated_jobs_count,
+            'timestamp_updated': timestamp_jobs_updated,
+            'total_processed': total_jobs_processed,
+            'successful_tabs': len(successful_tabs),
+            'failed_tabs': len(failed_tabs),
+            'duration': duration
+        }
 
 
 # ==============================================================================
