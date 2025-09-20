@@ -139,15 +139,15 @@ class GoogleSheetManager:
             return set()
             
     def get_job_data_with_positions(self, worksheet_name: str) -> Dict[str, Dict]:
-    """ดึงข้อมูล Job_No พร้อมตำแหน่งแถวและคอลัมน์ Status"""
-    try:
-        ws = self.get_or_create_worksheet(worksheet_name)
-        all_data = ws.get_all_records()
-        headers = ws.row_values(1)
-        
-        # ✅ หา index ของคอลัมน์ Job_No และ Source_Tab (ปรับปรุงการค้นหา)
-        job_no_col_idx = None
-        source_tab_col_idx = None
+        """ดึงข้อมูล Job_No พร้อมตำแหน่งแถวและคอลัมน์ Status"""
+        try:
+            ws = self.get_or_create_worksheet(worksheet_name)
+            all_data = ws.get_all_records()
+            headers = ws.row_values(1)
+            
+            # ✅ หา index ของคอลัมน์ Job_No และ Source_Tab (ปรับปรุงการค้นหา)
+            job_no_col_idx = None
+            source_tab_col_idx = None
         
         for idx, header in enumerate(headers):
             header_str = str(header).strip()
